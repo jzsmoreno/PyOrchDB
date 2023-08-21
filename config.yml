@@ -1,0 +1,5 @@
+workspace_name: testazml
+resource_group_name: test
+location: eastus 
+experiment_name: runazml
+script_name: run_workflow.py
