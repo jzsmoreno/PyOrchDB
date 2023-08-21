@@ -51,9 +51,7 @@ if __name__ == "__main__":
     ps_command += " --output tsv)\n"
     ps_command += "az storage blob upload --account-name "
     ps_command += f"$storageName --account-key $storageKey --container-name azureml "
-    ps_command += (
-        f"--file ./{yaml_data['script_name']} --name {yaml_data['script_name']}"
-    )
+    ps_command += f"--file ./{yaml_data['script_name']} --name {yaml_data['script_name']}"
 
     # save command_line into a run.ps1 file
     with open("run.ps1", "w") as file:
