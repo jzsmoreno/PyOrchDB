@@ -17,25 +17,27 @@ ps_command += "\n"
 ps_command += "\n"
 ps_command += "if (az group exists --resource-group $resourceGroupName){\n"
 ps_command += "\techo "
-ps_command += "'Resource group already exists.'\n"
-ps_command += "\ttry{\n"
-ps_command += "\t\twhile ($true){\n\t\t\t"
+ps_command += "'Resource group already exists.'\n\t"
+ps_command += f"if ({yaml_data['delete_az_resources']})"
+ps_command += "{\n\t\ttry{\n"
+ps_command += "\t\t\twhile ($true){\n\t\t\t\t"
 ps_command += "az resource delete --name (az resource list --query '[0].{name:name}' "
 ps_command += f"--resource-group {yaml_data['resource_group_name']} --output table)[2] "
 ps_command += "--resource-type (az resource list --query [0]'.{name:type}' "
 ps_command += f"--resource-group {yaml_data['resource_group_name']} --output table)[2] "
 ps_command += f"--resource-group {yaml_data['resource_group_name']}"
-ps_command += "\n\t\t\tStart-Sleep -Seconds 1.5"
-ps_command += "\n\t\t}\t"
-ps_command += "\n\t}\n"
-ps_command += "\tcatch{\n\t"
-ps_command += "\t"
-ps_command += "echo 'Resources removed.'\n\t\t"
+ps_command += "\n\t\t\t\tStart-Sleep -Seconds 1.5"
+ps_command += "\n\t\t\t}\t\t"
+ps_command += "\n\t\t}\n"
+ps_command += "\t\tcatch{\n\t"
+ps_command += "\t\t"
+ps_command += "echo 'Resources removed.'\n\t\t\t"
+ps_command += "echo 'Creating a new workspace...'\n\t\t\t"
 ps_command += f"az ml workspace create --resource-group {yaml_data['resource_group_name']}"
 ps_command += f" --name {yaml_data['workspace_name']}"
 ps_command += f" --location {yaml_data['location']}"
-ps_command += "\n\t}\n"
-ps_command += "}\n"
+ps_command += "\n\t\t}\n"
+ps_command += "\t}\n}\n"
 ps_command += "else{\n\t"
 ps_command += "echo "
 ps_command += "'Resource group does not exist. Creating...'\n\t"
@@ -46,14 +48,17 @@ ps_command += f" --name {yaml_data['workspace_name']}"
 ps_command += f" --location {yaml_data['location']}"
 ps_command += "\n}\n"
 
-py_command = "print('Hello World!')"
-
 
 if __name__ == "__main__":
-    # create run_workflow.py
-    with open("run_workflow.py", "w") as file:
-        file.write(py_command)
-
+    # execute run_workflow.py to transform the data
+    ps_command += "echo 'Extraction and transformation. Running...'\n"
+    ps_command += "$storageBlob_conn = (az storage account show-connection-string "
+    ps_command += f"--name {yaml_data['storage_account_name']} "
+    ps_command += f"--resource-group {yaml_data['sa_resource_group_name']} --query 'connectionString' --output tsv)"
+    ps_command += "\n"
+    ps_command += f"python ./{yaml_data['script_name']} {yaml_data['storage_account_name']}, "
+    ps_command += f"$storageBlob_conn, {yaml_data['sa_resource_group_name']}"
+    ps_command += "\n"
     # get storage account name
     ps_command += "$storageName = (az ml datastore list --query '[0].{storageName:account_name}' "
     ps_command += "--output table "
@@ -69,12 +74,13 @@ if __name__ == "__main__":
     ps_command += " --output tsv)\n"
     ps_command += "az storage blob upload --account-name "
     ps_command += f"$storageName --account-key $storageKey --container-name azureml "
-    ps_command += f"--file ./{yaml_data['script_name']} --name {yaml_data['script_name']}"
+    ps_command += f"--file ./jobs/{yaml_data['job_script']} --name {yaml_data['job_script']}"
     ps_command += " --overwrite\n"
     ps_command += f"az ml job create --name {yaml_data['job_name']} "
     ps_command += f"--file {yaml_data['job_file']} "
     ps_command += f"--workspace-name {yaml_data['workspace_name']} "
     ps_command += f"--resource-group {yaml_data['resource_group_name']}"
+    ps_command += "\n"
 
     # save command_line into a run.ps1 file
     with open("run.ps1", "w") as file:
@@ -82,7 +88,7 @@ if __name__ == "__main__":
 
     # run the PowerShell script from Python
     try:
-        subprocess.run(ps_command, shell=True, check=True)
+        # subprocess.run(ps_command, shell=True, check=True)
         print("PowerShell script executed successfully.")
     except subprocess.CalledProcessError as e:
         print("Error executing PowerShell script:", e)
