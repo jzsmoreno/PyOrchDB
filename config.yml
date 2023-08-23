@@ -3,3 +3,5 @@ resource_group_name: test
 location: eastus 
 experiment_name: runazml
 script_name: run_workflow.py
+job_file: ./jobs/experiment_job.yml
+job_name: test_pipeline
