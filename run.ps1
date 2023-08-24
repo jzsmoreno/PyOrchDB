@@ -3,7 +3,7 @@ $resourceGroupName='test'
 
 if (az group exists --resource-group $resourceGroupName){
 	echo 'Resource group already exists.'
-	if (False){
+	if ($False){
 		try{
 			while ($true){
 				az resource delete --name (az resource list --query '[0].{name:name}' --resource-group test --output table)[2] --resource-type (az resource list --query [0]'.{name:type}' --resource-group test --output table)[2] --resource-group test
