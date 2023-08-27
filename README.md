@@ -4,3 +4,49 @@ A package for designing and implementing ETL. This repository intends to use the
 <p align="center">
 <img src="diagram.png" width=55% height=55%>
 </p>
+
+## ETL creation and execution
+
+* ### Scenario 1
+
+    This considers that the infrastructure is not deployed, so the following command lines will be executed:
+
+    ```powershell
+    .\templates\run_template.ps1
+    Start-Process python pipeline.py -NoNewWindow -Wait
+    ```
+
+    Before executing the last command, it is necessary to verify that the `$location_name` variable in the `run_template.ps1` file matches the `location` variable in the `config.yml` file. The same applies to `$resource_group_name` and the variable `resource_group_name`. By executing the following command line we will be reproducing the architecture shown above, however, it is possible that the user has the data in another [`Storage account`](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview) that is in another resource group. It is also possible that the user wants to execute steps `3)` and `4)` on an already deployed architecture, both cases will be explored in the following scenario.
+
+    ```powershell
+    .\run.ps1
+    ```
+
+* ### Scenario 2
+
+    Suppose you already have the infrastructure in place and all you want to do is to run an extraction, transformation and loading job on a [`Storage account`](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview) in a resource group. In this case, the following command lines must be executed:
+
+    ```powershell
+    az login
+    $resource_group_name = '<resource_group_name>'
+    $storage_account_name = '<storage_account_name>'
+    $container_name = '<container_name>'
+    $storageBlob_conn = (az storage account show-connection-string --name $storage_account_name --resource-group $resource_group_name --query 'connectionString' --output tsv)
+    ```
+
+    The user must replace fields such as `<resource_group_name>`, `<storage_account_name>` and `<container_name>` with the corresponding values. The execution of `run_workflow.py` requires a specialized environment, so as intermediate steps it will be necessary to create and activate such an environment with the necessary requirements before executing the last command line.
+
+    ```powershell
+    Start-Process python -ArgumentList './run_workflow.py', $storage_account_name, $storageBlob_conn, $container_name, $resource_group_name -NoNewWindow -Wait
+    ```
+
+* ### Scenario 3
+
+    In this scenario, you have the resource group created and within it is the [`Storage account`](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview) that contains the data. In this case you will have to check the `config.yml` file and verify that everything is correct. Subsequently the following lines of code will be executed:
+
+    ```powershell
+    Start-Process python pipeline.py -NoNewWindow -Wait
+    .\run.ps1
+    ```
+
+
