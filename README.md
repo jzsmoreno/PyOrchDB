@@ -16,7 +16,9 @@ A package for designing and implementing ETL. This repository intends to use the
     Start-Process python pipeline.py -NoNewWindow -Wait
     ```
 
-    Before executing the last command, it is necessary to verify that the `$location_name` variable in the `run_template.ps1` file matches the `location` variable in the `config.yml` file. The same applies to `$resource_group_name` and the variable `resource_group_name`. By executing the following command line we will be reproducing the architecture shown above, however, it is possible that the user has the data in another [`Storage account`](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview) that is in another resource group. It is also possible that the user wants to execute steps `3)` and `4)` on an already deployed architecture, both cases will be explored in the following scenario.
+    Before executing the last command, it is necessary to verify that the `$location_name` variable in the `run_template.ps1` file matches the `location` variable in the `config.yml` file. The same applies to `$resource_group_name` and the variable `resource_group_name`. The only variables that are modified by the user in the `run_template.ps1` file are those that begin with the symbol `$`.
+    
+    By executing the following command line we will be reproducing the architecture shown above, however, it is possible that the user has the data in another [`Storage account`](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview) that is in another resource group. It is also possible that the user wants to execute steps `3)` and `4)` on an already deployed architecture, both cases will be explored in the following scenario.
 
     ```powershell
     .\run.ps1
