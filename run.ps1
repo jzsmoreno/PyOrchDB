@@ -31,7 +31,7 @@ else{
 }
 echo 'Extraction and transformation. Running...'
 $storageBlob_conn = (az storage account show-connection-string --name testsa --resource-group test --query 'connectionString' --output tsv)
-Start-Process python -ArgumentList './run_workflow.py', 'testsa', $storageBlob_conn, 'rawdata', 'test' -NoNewWindow -Wait
+Start-Process python -ArgumentList './run_workflow.py', 'testsa', $storageBlob_conn, 'rawdata', 'test', 'catalog' -NoNewWindow -Wait
 $storageName = (az ml datastore list --query '[0].{storageName:account_name}' --output table --workspace-name testazml --resource-group test)[2]
 $storageKey = (az storage account keys list --resource-group test --account-name $storageName --query '[0].value' --output tsv)
 az storage blob upload --account-name $storageName --account-key $storageKey --container-name azureml --file ./jobs/job_workflow.py --name job_workflow.py --overwrite

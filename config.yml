@@ -10,3 +10,4 @@ job_script: job_workflow.py
 storage_account_name: testsa
 sa_resource_group_name: test
 sa_container_name: rawdata
+exclude_files: catalog
