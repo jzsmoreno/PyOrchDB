@@ -1,12 +1,30 @@
+import os
+import re
 import sys
+from io import TextIOWrapper
 from typing import List
 
+from merge_by_lev import *
+from pydbsmgr import *
 from pydbsmgr.utils.azure_sdk import StorageController
+from pydbsmgr.utils.tools import erase_files, merge_by_coincidence
+
+
+# Disable
+def blockPrint():
+    sys.stdout = open(os.devnull, "w")
+
+
+# Restore
+def enablePrint():
+    sys.stdout = sys.__stdout__
+
 
 print("Start run_workflow.py")
 
 
 def get_directories(files: List[str], subfolder_level: int = 0) -> List[str]:
+    """Get directories from list of files."""
     directories = set()
     for file in files:
         directories.add(file.split("/")[subfolder_level])
@@ -21,6 +39,23 @@ def get_directories(files: List[str], subfolder_level: int = 0) -> List[str]:
         get_directories(files, int(subfolder_level))
 
 
+def list_filter(elements: list, character: str) -> List[str]:
+    """Function that filters a list from a criteria
+
+    Args:
+        elements (list): list of values to be filtered
+        character (str): filter criteria
+
+    Returns:
+        List[str]: list of filtered elements
+    """
+    filter_elements = []
+    for element in elements:
+        if element.find(character) != -1:
+            filter_elements.append(element)
+    return filter_elements
+
+
 if __name__ == "__main__":
     storage_name = sys.argv[1]
     conn_string = sys.argv[2]
@@ -31,16 +66,38 @@ if __name__ == "__main__":
     controller = StorageController(conn_string, container_name)
     files = controller.get_all_blob()
 
-    for i, file in enumerate(files):
-        if file.find(exclude_files) != -1:
-            files.remove(file)
-        else:
-            print("File name : ", file)
-
     controller.set_BlobPrefix(files)
     directories = get_directories(files)
     print("The directories are as follows : ")
     print(directories)
+
+    erase_files()
+    tables = []
+    table_names = []
+    client_name = input("Insert client name : ")
+    for dir in directories:
+        print(f"Computing: {dir}")
+        blockPrint()
+        filter_files = list_filter(files, dir)
+        controller.set_BlobPrefix(filter_files)
+        df_list, name_list = controller.get_excel_csv("/", "\w+.(xlsx|csv)", True)
+        enablePrint()
+        for j, df in enumerate(df_list):
+            blockPrint()
+            df_list[j] = drop_empty_columns(df_list[j])
+            df_list[j].columns = clean_transform(df_list[j].columns, False)
+            enablePrint()
+            print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
+            clearConsole()
+        dfs, names, _ = merge_by_similarity(df_list, name_list)
+
+        for name in names:
+            try:
+                name = re.findall(name, "[A-Za-z]")[0]
+            except:
+                None
+            table_names.append("TB_BI_" + client_name.lower() + (name.strip()).capitalize())
+        tables += dfs
 
     # with open("output.txt", "w") as outfile:
     #    for row in files:
