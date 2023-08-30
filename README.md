@@ -5,6 +5,61 @@ A package for designing and implementing ETL. This repository intends to use the
 <img src="diagram.png" width=55% height=55%>
 </p>
 
+## Prerequisites
+
+* To execute the commands shown below, an _Azure Subscription_ is required.
+* To run the commands from your _local environment_, you need to install [`Azure CLI`](https://learn.microsoft.com/en-us/cli/azure/).
+
+## Install and run Azure CLI
+
+### Docker container
+
+You can use [`Docker`](https://www.docker.com/) to run a stand-alone Linux container with [`Azure CLI`](https://learn.microsoft.com/en-us/cli/azure/) pre-installed.
+
+```bash
+docker pull mcr.microsoft.com/azure-cli
+```
+
+The [`Docker image`](https://hub.docker.com/_/microsoft-azure-cli) can be run using the following command:
+
+```bash
+docker run -it mcr.microsoft.com/azure-cli
+```
+
+### Windows
+
+Here are the instructions to install [`Azure CLI`](https://learn.microsoft.com/en-us/cli/azure/) on Windows using the MSI installer.
+1. Download [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows?tabs=azure-cli)
+2. In the installer, accept the terms and select install.
+
+3. Check the installation:
+
+    To run Azure CLI open bash or from the command prompt or from the PowerShell. To verify, execute the following command:
+
+    ```powershell
+    az --version
+    ```
+
+    Additionally it is necessary to install the Azure Machine Learning extension. To do so, execute the following commands:
+
+    ```powershell
+    az upgrade
+    az extension add -n ml
+    ```
+
+    If you already have the extension, it will be necessary to first run the following command:
+
+    ```powershell
+    az extension remove -n azure-cli-ml
+    az extension remove -n ml
+    ```
+
+    If you want to update the extension, execute the following:
+
+    ```powershell
+    az extension update -n ml
+    ```
+
 ## ETL creation and execution
 
 * ### Scenario 1
