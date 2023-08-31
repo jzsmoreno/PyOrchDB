@@ -62,6 +62,7 @@ if __name__ == "__main__":
     container_name = sys.argv[3]
     resource_group_name = sys.argv[4]
     exclude_files = sys.argv[5]
+    directory = sys.argv[6]
 
     controller = StorageController(conn_string, container_name)
     files = controller.get_all_blob()
@@ -80,12 +81,13 @@ if __name__ == "__main__":
         blockPrint()
         filter_files = list_filter(files, dir)
         controller.set_BlobPrefix(filter_files)
-        df_list, name_list = controller.get_excel_csv("/", "\w+.(xlsx|csv)", True)
+        df_list, name_list = controller.get_excel_csv(directory, "\w+.(xlsx|csv)", True)
         enablePrint()
         for j, df in enumerate(df_list):
             blockPrint()
             df_list[j] = drop_empty_columns(df_list[j])
             df_list[j].columns = clean_transform(df_list[j].columns, False)
+            df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^unnamed")]
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
