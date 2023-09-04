@@ -54,6 +54,11 @@ ps_command += f"az ml workspace create --resource-group {yaml_data['resource_gro
 ps_command += f" --name {yaml_data['workspace_name']}"
 ps_command += f" --location {yaml_data['location']}"
 ps_command += "\n}\n"
+ps_command += "try{\n\t"
+ps_command += f"az ml workspace create --resource-group {yaml_data['resource_group_name']}"
+ps_command += f" --name {yaml_data['workspace_name']}"
+ps_command += f" --location {yaml_data['location']}"
+ps_command += "\n}\ncatch{\n\tcontinue\n}\n"
 
 
 if __name__ == "__main__":

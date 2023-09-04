@@ -29,6 +29,12 @@ else{
 	az group create --name $resourceGroupName --location eastus
 	az ml workspace create --resource-group test --name testazml --location eastus
 }
+try{
+	az ml workspace create --resource-group test --name testazml --location eastus
+}
+catch{
+	continue
+}
 echo 'Extraction and transformation. Running...'
 $storageBlob_conn = (az storage account show-connection-string --name testsa --resource-group test --query 'connectionString' --output tsv)
 Start-Process python -ArgumentList './run_workflow.py', 'testsa', $storageBlob_conn, 'rawdata', 'test', 'catalog', '/' -NoNewWindow -Wait
