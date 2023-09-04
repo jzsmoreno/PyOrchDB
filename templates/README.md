@@ -17,7 +17,4 @@ If you want to delete all the _resources_ in the _resource group_. Execute the f
 
 It is necessary to modify the variable `<resourceGroupName>` by the name of the _resource group_ from which you want to delete the _resources_. 
 
-We recommend if you want to work with the `pipeline.py` change the `delete_az_resources` variable to `True` (from the `config.yml` file) and run the `run.ps1` script. This will delete all resources in the `resource_group_name` resource group defined in the same `.yml` file. Since the `delete_all_resources.ps1` script only performs a soft deletion of the [`Azure Machine Learning`](https://learn.microsoft.com/en-us/azure/machine-learning/concept-workspace?view=azureml-api-2) workspace. Conversely, to make sure that the resource has been deleted correctly, before executing the `.\delete_all_resources.ps1` command, run the following:
-```powershell
-az ml workspace delete --resource-group <resourceGroupName> --name <workspace_name> --permanently-delete -y
-```
+We recommend if you want to work with the `pipeline.py` change the `delete_az_resources` variable to `True` (from the `config.yml` file) and run the `run.ps1` script. This will delete all resources in the `resource_group_name` resource group defined in the same `.yml` file. Since the `delete_all_resources.ps1` script by default only performs a soft deletion of the [`Azure Machine Learning`](https://learn.microsoft.com/en-us/azure/machine-learning/concept-workspace?view=azureml-api-2) workspace. On the other hand, to make sure that the resource has been deleted correctly, when executing the command `.delete_all_resources.ps1` it will be necessary to answer `y` to the option _permanently delete a workspace_.
