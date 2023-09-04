@@ -1,5 +1,5 @@
+param([string] $resourceGroupName)
 az login
-$resourceGroupName='test'
 
 if (az group exists --resource-group $resourceGroupName){
 	echo 'Resource group already exists.'

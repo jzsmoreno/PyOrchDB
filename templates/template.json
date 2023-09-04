@@ -43,7 +43,7 @@
   "resources": [
     {
       "type": "Microsoft.Storage/storageAccounts",
-      "apiVersion": "2021-04-01",
+      "apiVersion": "2022-09-01",
       "name": "[parameters('storageAccountName')]",
       "location": "[parameters('location')]",
       "sku": {
@@ -54,7 +54,7 @@
     },
     {
       "type": "Microsoft.Sql/servers",
-      "apiVersion": "2020-11-01-preview",
+      "apiVersion": "2022-05-01-preview",
       "name": "[parameters('sqlServerName')]",
       "location": "[parameters('location')]",
       "properties": {
