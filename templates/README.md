@@ -18,3 +18,16 @@ If you want to delete all the _resources_ in the _resource group_. Execute the f
 It is necessary to modify the variable `<resourceGroupName>` by the name of the _resource group_ from which you want to delete the _resources_. 
 
 We recommend if you want to work with the `pipeline.py` change the `delete_az_resources` variable to `True` (from the `config.yml` file) and run the `run.ps1` script. This will delete all resources in the `resource_group_name` resource group defined in the same `.yml` file. Since the `delete_all_resources.ps1` script by default only performs a soft deletion of the [`Azure Machine Learning`](https://learn.microsoft.com/en-us/azure/machine-learning/concept-workspace?view=azureml-api-2) workspace. On the other hand, to make sure that the resource has been deleted correctly, when executing the command `.delete_all_resources.ps1` it will be necessary to answer `y` to the option _permanently delete a workspace_.
+
+## Creation of a database from an existing SQL server
+
+In case you are using scenario 2 and you want to create a database over an existing [`SQL server`](https://learn.microsoft.com/en-us/azure/azure-sql/azure-sql-iaas-vs-paas-what-is-overview?view=azuresql), you will need to execute the following commands:
+```powershell
+az login
+$resourceGroupName = '<resourceGroupName>'
+$sql_server_name = '<sql-server-name>'
+$database_name = '<database-name>'
+az sql db create --resource-group $resourceGroupName --server $sql_server_name --name $database_name --service-objective GP_S_Gen5_1
+```
+
+Here are some examples of the `--service-objective` parameter: `Basic`, `S0`, `P1`, `GP_Gen4_1`, `GP_Gen5_S_8`, `BC_Gen5_2`, `HS_Gen5_32`. These follow the convention of specifying the purpose of the database followed by the number of cores.
