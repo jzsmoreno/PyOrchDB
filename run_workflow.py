@@ -7,7 +7,7 @@ from typing import List
 from merge_by_lev import *
 from pydbsmgr import *
 from pydbsmgr.utils.azure_sdk import StorageController
-from pydbsmgr.utils.tools import erase_files, merge_by_coincidence
+from pydbsmgr.utils.tools import ColumnsDtypes, erase_files, merge_by_coincidence
 
 
 # Disable
@@ -101,6 +101,12 @@ if __name__ == "__main__":
             table_names.append("TB_BI_" + client_name.lower() + (name.strip()).capitalize())
         tables += dfs
 
+    blockPrint()
+    for i, table in enumerate(tables):
+        _, tables[i] = check_values(table, df_name=table_names[i], mode=False)
+        handler = ColumnsDtypes(tables[i])
+        tables[i] = handler.correct()
+    enablePrint()
     # with open("output.txt", "w") as outfile:
     #    for row in files:
     #        outfile.write(row + "\n")
