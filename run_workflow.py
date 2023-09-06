@@ -56,6 +56,22 @@ def list_filter(elements: list, character: str) -> List[str]:
     return filter_elements
 
 
+def list_remove(elements: list, character: str) -> List[str]:
+    """Function that removes items from a list based on a criteria
+
+    Args:
+        elements (list): list of values to be filtered
+        character (str): filter criteria
+
+    Returns:
+        List[str]: list of filtered elements
+    """
+    for element in elements:
+        if element.find(character) != -1:
+            elements.remove(element)
+    return elements
+
+
 if __name__ == "__main__":
     storage_name = sys.argv[1]
     conn_string = sys.argv[2]
@@ -66,6 +82,7 @@ if __name__ == "__main__":
 
     controller = StorageController(conn_string, container_name)
     files = controller.get_all_blob()
+    files = list_remove(files, exclude_files)
 
     controller.set_BlobPrefix(files)
     directories = get_directories(files)
@@ -91,7 +108,7 @@ if __name__ == "__main__":
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
-        dfs, names, _ = merge_by_similarity(df_list, name_list)
+        dfs, names, _ = merge_by_similarity(df_list, name_list, 9)
 
         for name in names:
             try:
