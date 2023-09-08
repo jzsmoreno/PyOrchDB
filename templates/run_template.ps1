@@ -100,6 +100,8 @@ Write-Output 'Deploying resources...'
 try{
     az deployment group create --resource-group $resource_group_name --template-file $template_file --parameters storageAccountName=$storage_account_name sqlServerName=$sql_server_name adminUsername=$admin_username adminPassword=$admin_password databaseName=$database_name
     $storageBlob_conn = (az storage account show-connection-string --name $storage_account_name --resource-group $resource_group_name --query 'connectionString' --output tsv)
+    az storage container create --name rawdata --account-name $storage_account_name
+    az storage container create --name processed --account-name $storage_account_name
 }
 catch{
     Write-Output 'It was not possible to create the resources, check the resource group or the input parameters.'
