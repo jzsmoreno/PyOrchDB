@@ -7,7 +7,10 @@ from typing import List
 from merge_by_lev import *
 from pydbsmgr import *
 from pydbsmgr.utils.azure_sdk import StorageController
-from pydbsmgr.utils.tools import ColumnsDtypes, erase_files, merge_by_coincidence
+from pydbsmgr.utils.tools import (ColumnsDtypes, erase_files,
+                                  merge_by_coincidence)
+
+from utils import insert_column_period
 
 
 # Disable
@@ -99,6 +102,7 @@ if __name__ == "__main__":
         filter_files = list_filter(files, dir)
         controller.set_BlobPrefix(filter_files)
         df_list, name_list = controller.get_excel_csv(directory, "\w+.(xlsx|csv)", True)
+        df_list = insert_column_period(df_list, name_list)
         enablePrint()
         for j, df in enumerate(df_list):
             blockPrint()
