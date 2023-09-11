@@ -1,0 +1,24 @@
+# Code quality
+black==23.7.0
+flake8==6.0.0
+mypy==1.4.1
+pydocstyle==6.3.0
+mypy-extensions==1.0.0
+types-openpyxl==3.1.0.15
+
+numpy
+pandas
+clean-text
+missingno
+pyodbc
+ipython
+SQLAlchemy
+pyyaml
+azure-storage-blob==12.16.0
+python-dotenv==1.0.0
+openpyxl==3.1.2
+pyarrow
+fastparquet
+loguru
+git+https://github.com/jzsmoreno/pydbsmgr
+git+https://github.com/jzsmoreno/merge_by_lev

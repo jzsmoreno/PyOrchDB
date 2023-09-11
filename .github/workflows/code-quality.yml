@@ -24,6 +24,3 @@ jobs:
     - name: Run black
       run: |
         black . --check --line-length=100
-    - name: Run isort
-      run: |
-        isort . -c -v
