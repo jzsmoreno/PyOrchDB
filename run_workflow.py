@@ -7,8 +7,7 @@ from typing import List
 from merge_by_lev import *
 from pydbsmgr import *
 from pydbsmgr.utils.azure_sdk import StorageController
-from pydbsmgr.utils.tools import (ColumnsDtypes, erase_files,
-                                  merge_by_coincidence)
+from pydbsmgr.utils.tools import ColumnsDtypes, erase_files, merge_by_coincidence
 
 from utils import insert_column_period
 
