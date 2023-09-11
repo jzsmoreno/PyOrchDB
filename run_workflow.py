@@ -7,8 +7,7 @@ from typing import List
 from merge_by_lev import *
 from pydbsmgr import *
 from pydbsmgr.utils.azure_sdk import StorageController
-from pydbsmgr.utils.tools import (ColumnsDtypes, erase_files,
-                                  merge_by_coincidence)
+from pydbsmgr.utils.tools import ColumnsDtypes, erase_files, merge_by_coincidence
 
 from utils import insert_column_period
 
@@ -75,6 +74,37 @@ def list_remove(elements: list, character: str) -> List[str]:
     return elements
 
 
+def insert_period(
+    df: DataFrame, df_name: str, REGEX_PATTERN: str = r"\d{4}-\d{2}-\d{2}"
+) -> DataFrame:
+    """Function that inserts the period column from the database name
+
+    Args:
+        df (`DataFrame`): database to which the column will be added
+        df_name (`str`): name of the database
+
+    Returns:
+        DataFrame: resulting base with the period column
+    """
+    period_extract = re.findall(REGEX_PATTERN, df_name)
+    if len(period_extract) > 0:
+        period = period_extract[0]
+    else:
+        REGEX_PATTERN = r".*([1-2][0-9]{3})"
+        period_extract = re.findall(REGEX_PATTERN, df_name)
+        if len(period_extract) > 0:
+            period = period_extract[0]
+        else:
+            period = ""
+    cols = df.columns
+    filter_cols = list_filter(cols, "periodo")
+
+    if not len(filter_cols) > 0:
+        df["periodo"] = period
+
+    return df
+
+
 if __name__ == "__main__":
     storage_name = sys.argv[1]
     conn_string = sys.argv[2]
@@ -109,6 +139,7 @@ if __name__ == "__main__":
             df_list[j] = drop_empty_columns(df_list[j])
             df_list[j].columns = clean_transform(df_list[j].columns, False)
             df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^unnamed")]
+            df_list[j] = insert_period(df_list[j], name_list[j])
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
