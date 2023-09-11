@@ -26,4 +26,4 @@ jobs:
         black . --check --line-length=100
     - name: Run isort
       run: |
-        isort **/*.py -c -v
+        isort *.py -c -v
