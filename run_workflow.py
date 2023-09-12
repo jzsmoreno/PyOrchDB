@@ -1,13 +1,15 @@
 import os
 import re
 import sys
-from io import TextIOWrapper
 from typing import List
 
 from merge_by_lev import *
 from pydbsmgr import *
+from pydbsmgr.lightest import LightCleaner
 from pydbsmgr.utils.azure_sdk import StorageController
 from pydbsmgr.utils.tools import ColumnsDtypes, erase_files, merge_by_coincidence
+
+from utilities.catalog import EventController
 
 
 # Disable
@@ -36,7 +38,7 @@ def get_directories(files: List[str], subfolder_level: int = 0) -> List[str]:
         subfolder_level = input(
             "Inserts the level at which they can be found (number of subfolders) : "
         )
-        get_directories(files, int(subfolder_level))
+        return get_directories(files, int(subfolder_level))
 
 
 def list_filter(elements: list, character: str) -> List[str]:
@@ -72,6 +74,37 @@ def list_remove(elements: list, character: str) -> List[str]:
     return elements
 
 
+def insert_period(
+    df: DataFrame, df_name: str, REGEX_PATTERN: str = r"\d{4}-\d{2}-\d{2}"
+) -> DataFrame:
+    """Function that inserts the period column from the database name
+
+    Args:
+        df (`DataFrame`): database to which the column will be added
+        df_name (`str`): name of the database
+
+    Returns:
+        DataFrame: resulting base with the period column
+    """
+    period_extract = re.findall(REGEX_PATTERN, df_name)
+    if len(period_extract) > 0:
+        period = period_extract[0]
+    else:
+        REGEX_PATTERN = r".*([1-2][0-9]{3})"
+        period_extract = re.findall(REGEX_PATTERN, df_name)
+        if len(period_extract) > 0:
+            period = period_extract[0]
+        else:
+            period = ""
+    cols = df.columns
+    filter_cols = list_filter(cols, "periodo")
+
+    if not len(filter_cols) > 0:
+        df["periodo"] = period
+
+    return df
+
+
 if __name__ == "__main__":
     storage_name = sys.argv[1]
     conn_string = sys.argv[2]
@@ -80,9 +113,16 @@ if __name__ == "__main__":
     exclude_files = sys.argv[5]
     directory = sys.argv[6]
 
+    project = input("Insert project name (first directory in the container) : ")
     controller = StorageController(conn_string, container_name)
     files = controller.get_all_blob()
     files = list_remove(files, exclude_files)
+    # consult catalog
+    manager = EventController(conn_string, container_name, project)
+    try:
+        manager.create_log(files)
+    except:
+        files = manager.diff(files)
 
     controller.set_BlobPrefix(files)
     directories = get_directories(files)
@@ -99,31 +139,50 @@ if __name__ == "__main__":
         filter_files = list_filter(files, dir)
         controller.set_BlobPrefix(filter_files)
         df_list, name_list = controller.get_excel_csv(directory, "\w+.(xlsx|csv)", True)
+        df_list = insert_column_period(df_list, name_list)
         enablePrint()
         for j, df in enumerate(df_list):
             blockPrint()
             df_list[j] = drop_empty_columns(df_list[j])
             df_list[j].columns = clean_transform(df_list[j].columns, False)
             df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^unnamed")]
+            df_list[j] = insert_period(df_list[j], name_list[j])
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
-        dfs, names, _ = merge_by_similarity(df_list, name_list, 9)
+        dfs, names, _ = merge_by_similarity(df_list, name_list, 9, 5)
 
         for name in names:
             try:
                 name = re.findall(name, "[A-Za-z]")[0]
             except:
                 None
-            table_names.append("TB_BI_" + client_name.lower() + (name.strip()).capitalize())
+            table_names.append("TB_BI_" + client_name.lower() + (dir.strip()).capitalize())
         tables += dfs
 
+    print("Starting the cleaning process...")
     blockPrint()
     for i, table in enumerate(tables):
-        _, tables[i] = check_values(table, df_name=table_names[i], mode=False)
-        handler = ColumnsDtypes(tables[i])
-        tables[i] = handler.correct()
+        try:
+            if not isinstance(tables[i], DataFrame):
+                tables[i] = tables[i].to_frame().reset_index()
+            cleaner = LightCleaner(tables[i])
+            tables[i] = cleaner.clean_frame()
+            handler = ColumnsDtypes(tables[i])
+            tables[i] = handler.correct()
+        except:
+            None
     enablePrint()
-    # with open("output.txt", "w") as outfile:
-    #    for row in files:
-    #        outfile.write(row + "\n")
+
+    print("Completed!")
+    container_name = "processed"  # Is a fixed variable
+    controller_ = StorageController(conn_string, container_name)
+    controller_.write_parquet("/", tables, table_names)
+
+    del tables, dfs, df_list, controller  # The ram is released
+
+    files_processed = controller_.get_all_blob()
+    # list of files to be read `.parquet`
+    files_parquet = list_filter(files_processed, ".parquet")
+
+    del files_processed
