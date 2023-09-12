@@ -36,7 +36,7 @@ def get_directories(files: List[str], subfolder_level: int = 0) -> List[str]:
         subfolder_level = input(
             "Inserts the level at which they can be found (number of subfolders) : "
         )
-        get_directories(files, int(subfolder_level))
+        return get_directories(files, int(subfolder_level))
 
 
 def list_filter(elements: list, character: str) -> List[str]:
