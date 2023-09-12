@@ -139,7 +139,6 @@ if __name__ == "__main__":
         filter_files = list_filter(files, dir)
         controller.set_BlobPrefix(filter_files)
         df_list, name_list = controller.get_excel_csv(directory, "\w+.(xlsx|csv)", True)
-        df_list = insert_column_period(df_list, name_list)
         enablePrint()
         for j, df in enumerate(df_list):
             blockPrint()
@@ -166,8 +165,8 @@ if __name__ == "__main__":
         try:
             if not isinstance(tables[i], DataFrame):
                 tables[i] = tables[i].to_frame().reset_index()
-            cleaner = LightCleaner(tables[i])
-            tables[i] = cleaner.clean_frame()
+            # cleaner = LightCleaner(tables[i])
+            # tables[i] = cleaner.clean_frame()
             handler = ColumnsDtypes(tables[i])
             tables[i] = handler.correct()
         except:
