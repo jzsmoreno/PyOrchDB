@@ -166,8 +166,8 @@ if __name__ == "__main__":
         try:
             if not isinstance(tables[i], DataFrame):
                 tables[i] = tables[i].to_frame().reset_index()
-            cleaner = LightCleaner(tables[i])
-            tables[i] = cleaner.clean_frame()
+            # cleaner = LightCleaner(tables[i])
+            # tables[i] = cleaner.clean_frame()
             handler = ColumnsDtypes(tables[i])
             tables[i] = handler.correct()
         except:
