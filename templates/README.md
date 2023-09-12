@@ -31,3 +31,12 @@ az sql db create --resource-group $resourceGroupName --server $sql_server_name -
 ```
 
 Here are some examples of the `--service-objective` parameter: `Basic`, `S0`, `P1`, `GP_Gen4_1`, `GP_Gen5_S_8`, `BC_Gen5_2`, `HS_Gen5_32`. These follow the convention of specifying the purpose of the database followed by the number of cores.
+
+## Creation of containers from an existing storage account
+
+Within the [`ARM template`](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/) in `templates` is the default creation of the `rawdata` and `processed` containers. But if you want to create the containers on an existing storage account, you need to execute the following commands:
+```powershell
+$storage_account_name = '<storage_account_name>'
+az storage container create --name rawdata --account-name $storage_account_name
+az storage container create --name processed --account-name $storage_account_name
+```

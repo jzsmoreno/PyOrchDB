@@ -1,15 +1,15 @@
 import os
 import re
 import sys
-from io import TextIOWrapper
 from typing import List
 
 from merge_by_lev import *
 from pydbsmgr import *
+from pydbsmgr.lightest import LightCleaner
 from pydbsmgr.utils.azure_sdk import StorageController
 from pydbsmgr.utils.tools import ColumnsDtypes, erase_files, merge_by_coincidence
 
-from utils import insert_column_period
+from utilities.catalog import EventController
 
 
 # Disable
@@ -113,9 +113,16 @@ if __name__ == "__main__":
     exclude_files = sys.argv[5]
     directory = sys.argv[6]
 
+    project = input("Insert project name (first directory in the container) : ")
     controller = StorageController(conn_string, container_name)
     files = controller.get_all_blob()
     files = list_remove(files, exclude_files)
+    # consult catalog
+    manager = EventController(conn_string, container_name, project)
+    try:
+        manager.create_log(files)
+    except:
+        files = manager.diff(files)
 
     controller.set_BlobPrefix(files)
     directories = get_directories(files)
@@ -143,22 +150,39 @@ if __name__ == "__main__":
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
-        dfs, names, _ = merge_by_similarity(df_list, name_list, 9)
+        dfs, names, _ = merge_by_similarity(df_list, name_list, 9, 5)
 
         for name in names:
             try:
                 name = re.findall(name, "[A-Za-z]")[0]
             except:
                 None
-            table_names.append("TB_BI_" + client_name.lower() + (name.strip()).capitalize())
+            table_names.append("TB_BI_" + client_name.lower() + (dir.strip()).capitalize())
         tables += dfs
 
+    print("Starting the cleaning process...")
     blockPrint()
     for i, table in enumerate(tables):
-        _, tables[i] = check_values(table, df_name=table_names[i], mode=False)
-        handler = ColumnsDtypes(tables[i])
-        tables[i] = handler.correct()
+        try:
+            if not isinstance(tables[i], DataFrame):
+                tables[i] = tables[i].to_frame().reset_index()
+            cleaner = LightCleaner(tables[i])
+            tables[i] = cleaner.clean_frame()
+            handler = ColumnsDtypes(tables[i])
+            tables[i] = handler.correct()
+        except:
+            None
     enablePrint()
-    # with open("output.txt", "w") as outfile:
-    #    for row in files:
-    #        outfile.write(row + "\n")
+
+    print("Completed!")
+    container_name = "processed"  # Is a fixed variable
+    controller_ = StorageController(conn_string, container_name)
+    controller_.write_parquet("/", tables, table_names)
+
+    del tables, dfs, df_list, controller  # The ram is released
+
+    files_processed = controller_.get_all_blob()
+    # list of files to be read `.parquet`
+    files_parquet = list_filter(files_processed, ".parquet")
+
+    del files_processed
