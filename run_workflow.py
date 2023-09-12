@@ -1,13 +1,15 @@
 import os
 import re
 import sys
-from io import TextIOWrapper
 from typing import List
 
 from merge_by_lev import *
 from pydbsmgr import *
+from pydbsmgr.lightest import LightCleaner
 from pydbsmgr.utils.azure_sdk import StorageController
 from pydbsmgr.utils.tools import ColumnsDtypes, erase_files, merge_by_coincidence
+
+from utilities.catalog import EventController
 
 
 # Disable
@@ -111,9 +113,16 @@ if __name__ == "__main__":
     exclude_files = sys.argv[5]
     directory = sys.argv[6]
 
+    project = input("Insert project name (first directory in the container) : ")
     controller = StorageController(conn_string, container_name)
     files = controller.get_all_blob()
     files = list_remove(files, exclude_files)
+    # consult catalog
+    manager = EventController(conn_string, container_name, project)
+    try:
+        manager.create_log(files)
+    except:
+        files = manager.diff(files)
 
     controller.set_BlobPrefix(files)
     directories = get_directories(files)
@@ -147,13 +156,16 @@ if __name__ == "__main__":
                 name = re.findall(name, "[A-Za-z]")[0]
             except:
                 None
-            table_names.append("TB_BI_" + client_name.lower() + (name.strip()).capitalize())
+            table_names.append("TB_BI_" + client_name.lower() + (dir.strip()).capitalize())
         tables += dfs
 
     print("Starting the cleaning process...")
     blockPrint()
     for i, table in enumerate(tables):
-        _, tables[i] = check_values(table, df_name=table_names[i], mode=False)
+        if not isinstance(tables[i], DataFrame):
+            tables[i] = tables[i].to_frame().reset_index()
+        cleaner = LightCleaner(tables[i])
+        tables[i] = cleaner.clean_frame()
         handler = ColumnsDtypes(tables[i])
         tables[i] = handler.correct()
     enablePrint()
