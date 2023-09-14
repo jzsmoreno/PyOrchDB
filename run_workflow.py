@@ -170,7 +170,7 @@ if __name__ == "__main__":
             df_list[j].columns = clean_transform(df_list[j].columns, False)
             df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^unnamed")]
             df_list[j] = insert_period(df_list[j], name_list[j])
-            df_list[j] = remove_by_dict(df_list[j])
+            df_list[j] = remove_by_dict(df_list[j], columns_to_delete)
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
