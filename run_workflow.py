@@ -105,6 +105,30 @@ def insert_period(
     return df
 
 
+with open("./utilities/columns_to_delete.yml", "r") as file:
+    yaml_data = yaml.safe_load(file)
+
+# Extract the columns to delete from the YAML dictionary
+columns_to_delete = yaml_data["columns_to_delete"]
+
+
+def remove_by_dict(df: DataFrame, to_delete: list) -> DataFrame:
+    """Remove a set of columns from `DataFrame`
+
+    Args:
+        df (`DataFrame`): `DataFrame` from which columns will be removed
+        to_delete (`list`): `list` of columns to be removed
+
+    Returns:
+        `DataFrame`: `DataFrame` without the columns to be removed
+    """
+    cols = set(df.columns)
+    columns_to_delete = list(cols.difference(set(to_delete)))
+    if len(columns_to_delete) > 0:
+        df = df.drop(columns=columns_to_delete)
+    return df
+
+
 if __name__ == "__main__":
     storage_name = sys.argv[1]
     conn_string = sys.argv[2]
@@ -146,6 +170,7 @@ if __name__ == "__main__":
             df_list[j].columns = clean_transform(df_list[j].columns, False)
             df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^unnamed")]
             df_list[j] = insert_period(df_list[j], name_list[j])
+            df_list[j] = remove_by_dict(df_list[j])
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
