@@ -12,3 +12,5 @@ sa_resource_group_name: test
 sa_container_name: rawdata
 sa_container_directory: /
 exclude_files: catalog
+sql_server_name: gentestsrv01 
+database_name: testdbsrv01

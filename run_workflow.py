@@ -8,7 +8,7 @@ from pydbsmgr import *
 from pydbsmgr.lightest import LightCleaner
 from pydbsmgr.utils.azure_sdk import StorageController
 from pydbsmgr.utils.tools import ColumnsDtypes, erase_files, merge_by_coincidence
-
+from utilities.upload_to_sql import UploadToSQL
 from utilities.catalog import EventController
 
 
@@ -123,9 +123,8 @@ def remove_by_dict(df: DataFrame, to_delete: list) -> DataFrame:
         `DataFrame`: `DataFrame` without the columns to be removed
     """
     cols = set(df.columns)
-    columns_to_delete = list(cols.difference(set(to_delete)))
-    if len(columns_to_delete) > 0:
-        df = df.drop(columns=columns_to_delete)
+    columns_to_keep = list(cols.difference(set(to_delete)))
+    df = df[columns_to_keep].copy()
     return df
 
 
@@ -136,6 +135,7 @@ if __name__ == "__main__":
     resource_group_name = sys.argv[4]
     exclude_files = sys.argv[5]
     directory = sys.argv[6]
+    db_conn_string = "Driver={SQL " + sys.argv[12]
 
     project = input("Insert project name (first directory in the container) : ")
     controller = StorageController(conn_string, container_name)
@@ -200,7 +200,7 @@ if __name__ == "__main__":
     controller_processed = StorageController(conn_string, container_name)
 
     # By default the compression is `True`
-    controller_processed.upload_parquet("/", tables, table_names, compression=False)
+    controller_processed.upload_parquet(project, tables, table_names, compression=False)
 
     del tables, dfs, df_list, controller  # The ram is released
 
@@ -208,8 +208,7 @@ if __name__ == "__main__":
     # list of files to be read `.parquet`
     files_parquet = list_filter(files_processed, ".parquet")
 
-    del files_processed
+    db_handler = UploadToSQL(conn_string, container_name)
+    db_handler.upload_parquet(files_parquet, db_conn_string, project)
 
-    # with open("output.txt", "w") as outfile:
-    #    for row in files:
-    #        outfile.write(row + "\n")
+    del files_processed
