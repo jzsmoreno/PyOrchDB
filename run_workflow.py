@@ -136,7 +136,6 @@ if __name__ == "__main__":
     exclude_files = sys.argv[5]
     directory = sys.argv[6]
     db_conn_string = "Driver={SQL " + sys.argv[12]
-    df_conn_string = db_conn_string.replace("{SQL Server}", "{ODBC Driver 18 for SQL Server}")
 
     project = input("Insert project name (first directory in the container) : ")
     controller = StorageController(conn_string, container_name)
