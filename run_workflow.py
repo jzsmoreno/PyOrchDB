@@ -10,6 +10,8 @@ from pydbsmgr.utils.azure_sdk import StorageController
 from pydbsmgr.utils.tools import ColumnsDtypes, erase_files, merge_by_coincidence
 
 from utilities.catalog import EventController
+from utilities.correct_cols import columns_check
+from utilities.upload_to_sql import UploadToSQL
 
 
 # Disable
@@ -105,6 +107,29 @@ def insert_period(
     return df
 
 
+with open("./utilities/columns_to_delete.yml", "r") as file:
+    yaml_data = yaml.safe_load(file)
+
+# Extract the columns to delete from the YAML dictionary
+columns_to_delete = yaml_data["columns_to_delete"]
+
+
+def remove_by_dict(df: DataFrame, to_delete: list) -> DataFrame:
+    """Remove a set of columns from `DataFrame`
+
+    Args:
+        df (`DataFrame`): `DataFrame` from which columns will be removed
+        to_delete (`list`): `list` of columns to be removed
+
+    Returns:
+        `DataFrame`: `DataFrame` without the columns to be removed
+    """
+    cols = set(df.columns)
+    columns_to_keep = list(cols.difference(set(to_delete)))
+    df = df[columns_to_keep].copy()
+    return df
+
+
 if __name__ == "__main__":
     storage_name = sys.argv[1]
     conn_string = sys.argv[2]
@@ -112,6 +137,8 @@ if __name__ == "__main__":
     resource_group_name = sys.argv[4]
     exclude_files = sys.argv[5]
     directory = sys.argv[6]
+    db_conn_string = "Driver={SQL " + sys.argv[12]
+    db_conn_string = db_conn_string.replace("{SQL Server}", "{ODBC Driver 17 for SQL Server}")
 
     project = input("Insert project name (first directory in the container) : ")
     controller = StorageController(conn_string, container_name)
@@ -143,9 +170,12 @@ if __name__ == "__main__":
         for j, df in enumerate(df_list):
             blockPrint()
             df_list[j] = drop_empty_columns(df_list[j])
+            df_list[j].columns = columns_check(df_list[j].columns)
             df_list[j].columns = clean_transform(df_list[j].columns, False)
             df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^unnamed")]
             df_list[j] = insert_period(df_list[j], name_list[j])
+            df_list[j] = remove_by_dict(df_list[j], columns_to_delete)
+            df_list[j].columns = columns_check(df_list[j].columns)
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
@@ -162,11 +192,11 @@ if __name__ == "__main__":
     print("Starting the cleaning process...")
     blockPrint()
     for i, table in enumerate(tables):
+        if not isinstance(tables[i], DataFrame):
+            tables[i] = tables[i].to_frame().reset_index()
+        cleaner = LightCleaner(tables[i])
+        tables[i] = cleaner.clean_frame()
         try:
-            if not isinstance(tables[i], DataFrame):
-                tables[i] = tables[i].to_frame().reset_index()
-            # cleaner = LightCleaner(tables[i])
-            # tables[i] = cleaner.clean_frame()
             handler = ColumnsDtypes(tables[i])
             tables[i] = handler.correct()
         except:
@@ -176,12 +206,16 @@ if __name__ == "__main__":
     print("Completed!")
     container_name = "processed"  # Is a fixed variable
     controller_ = StorageController(conn_string, container_name)
-    controller_.write_parquet("/", tables, table_names)
+    controller_.write_parquet(project, tables, table_names)
 
     del tables, dfs, df_list, controller  # The ram is released
 
     files_processed = controller_.get_all_blob()
+
     # list of files to be read `.parquet`
     files_parquet = list_filter(files_processed, ".parquet")
+
+    db_handler = UploadToSQL(conn_string, container_name)
+    db_handler.upload_parquet(files_parquet, db_conn_string, project)
 
     del files_processed

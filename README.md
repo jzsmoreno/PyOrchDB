@@ -88,13 +88,16 @@ Here are the instructions to install [`Azure CLI`](https://learn.microsoft.com/e
     $resource_group_name = '<resource_group_name>'
     $storage_account_name = '<storage_account_name>'
     $container_name = '<container_name>'
+    $sql_server_name = '<sql_server_name>'
+    $database_name = '<database_name>'
     $storageBlob_conn = (az storage account show-connection-string --name $storage_account_name --resource-group $resource_group_name --query 'connectionString' --output tsv)
+    $db_conn_string = (az sql db show-connection-string -c odbc -n $database_name -s $sql_server_name -a Sqlpassword --output tsv)
     ```
 
     The user must replace fields such as `<resource_group_name>`, `<storage_account_name>` and `<container_name>` with the corresponding values. The execution of `run_workflow.py` requires a specialized environment, so as intermediate steps it will be necessary to create and activate such an environment with the necessary requirements before executing the last command line.
 
     ```powershell
-    Start-Process python -ArgumentList './run_workflow.py', $storage_account_name, $storageBlob_conn, $container_name, $resource_group_name -NoNewWindow -Wait
+    Start-Process python -ArgumentList './run_workflow.py', $storage_account_name, $storageBlob_conn, $container_name, $resource_group_name, '<exclude_files>', '<sa_container_directory>', $db_conn_string -NoNewWindow -Wait
     ```
 
 * ### Scenario 3

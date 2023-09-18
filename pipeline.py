@@ -68,9 +68,12 @@ if __name__ == "__main__":
     ps_command += f"--name {yaml_data['storage_account_name']} "
     ps_command += f"--resource-group {yaml_data['sa_resource_group_name']} --query 'connectionString' --output tsv)"
     ps_command += "\n"
+    ps_command += f"$db_conn_string = (az sql db show-connection-string -c odbc -n {yaml_data['database_name']} -s "
+    ps_command += f"{yaml_data['sql_server_name']} -a Sqlpassword --output tsv)"
+    ps_command += "\n"
     ps_command += f"Start-Process python -ArgumentList './{yaml_data['script_name']}', '{yaml_data['storage_account_name']}', "
     ps_command += f"$storageBlob_conn, '{yaml_data['sa_container_name']}', '{yaml_data['sa_resource_group_name']}', "
-    ps_command += f"'{yaml_data['exclude_files']}', '{yaml_data['sa_container_directory']}' -NoNewWindow -Wait"
+    ps_command += f"'{yaml_data['exclude_files']}', '{yaml_data['sa_container_directory']}', $db_conn_string -NoNewWindow -Wait"
     ps_command += "\n"
     # get storage account name
     ps_command += "$storageName = (az ml datastore list --query '[0].{storageName:account_name}' "
