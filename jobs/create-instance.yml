@@ -1,0 +1,12 @@
+$schema: https://azuremlschemas.azureedge.net/latest/computeInstance.schema.json 
+name: DataScience-Compute
+type: computeinstance
+size: STANDARD_DS3_v2
+schedules:
+   compute_start_stop:
+      - action: stop
+        trigger:
+         type: cron
+         start_time: "2021-03-10T21:21:07"
+         time_zone: Central Standard Time
+         expression: 0 15 * * *
