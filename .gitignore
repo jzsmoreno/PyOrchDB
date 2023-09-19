@@ -153,6 +153,7 @@ dmypy.json
 cython_debug/
 
 # Ignore exe_<files>.ps1 for testing
+/test_*.py
 /exe_*.ps1 
 /output.txt
 
