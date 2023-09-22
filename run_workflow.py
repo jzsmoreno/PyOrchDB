@@ -10,7 +10,6 @@ from pydbsmgr.utils.azure_sdk import StorageController
 from pydbsmgr.utils.tools import ColumnsDtypes, columns_check, erase_files, merge_by_coincidence
 
 from utilities.catalog import EventController
-from utilities.correct_cols import columns_check
 from utilities.upload_to_sql import UploadToSQL
 
 
@@ -169,11 +168,12 @@ if __name__ == "__main__":
         filter_files = list_filter(files, dir)
         controller.set_BlobPrefix(filter_files)
         df_list, name_list = controller.get_excel_csv(directory, "\w+.(xlsx|csv)", True)
+        df_list, name_list = check_empty_df(df_list, name_list)
         enablePrint()
         for j, df in enumerate(df_list):
             blockPrint()
+            df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^Unnamed")]
             df_list[j] = drop_empty_columns(df_list[j])
-            df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^unnamed")]
             df_list[j] = columns_check(df_list[j])
             df_list[j].columns = clean_transform(df_list[j].columns, False)
             df_list[j] = insert_period(df_list[j], name_list[j])
