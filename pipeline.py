@@ -59,6 +59,9 @@ ps_command += f"az ml workspace create --resource-group {yaml_data['resource_gro
 ps_command += f" --name {yaml_data['workspace_name']}"
 ps_command += f" --location {yaml_data['location']}"
 ps_command += "\n}\ncatch{\n\tcontinue\n}\n"
+ps_command += f"az ml compute create -g {yaml_data['resource_group_name']} "
+ps_command += f"-w {yaml_data['workspace_name']} -f {yaml_data['instance_file']}"
+ps_command += "\n"
 
 
 if __name__ == "__main__":
@@ -92,10 +95,9 @@ if __name__ == "__main__":
     ps_command += f"$storageName --account-key $storageKey --container-name azureml "
     ps_command += f"--file ./jobs/{yaml_data['job_script']} --name {yaml_data['job_script']}"
     ps_command += " --overwrite\n"
-    ps_command += f"az ml job create --name {yaml_data['job_name']} "
-    ps_command += f"--file {yaml_data['job_file']} "
-    ps_command += f"--workspace-name {yaml_data['workspace_name']} "
-    ps_command += f"--resource-group {yaml_data['resource_group_name']}"
+    ps_command += f"az ml job create -f {yaml_data['job_file']} "
+    ps_command += f"-w {yaml_data['workspace_name']} "
+    ps_command += f"-g {yaml_data['resource_group_name']}"
     ps_command += "\n"
 
     # save command_line into a run.ps1 file

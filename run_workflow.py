@@ -7,10 +7,9 @@ from merge_by_lev import *
 from pydbsmgr import *
 from pydbsmgr.lightest import LightCleaner
 from pydbsmgr.utils.azure_sdk import StorageController
-from pydbsmgr.utils.tools import ColumnsDtypes, erase_files, merge_by_coincidence
+from pydbsmgr.utils.tools import ColumnsDtypes, columns_check, erase_files, merge_by_coincidence
 
 from utilities.catalog import EventController
-from utilities.correct_cols import columns_check
 from utilities.upload_to_sql import UploadToSQL
 
 
@@ -107,11 +106,14 @@ def insert_period(
     return df
 
 
-with open("./utilities/columns_to_delete.yml", "r") as file:
+with open("./utilities/config_data.yml", "r") as file:
     yaml_data = yaml.safe_load(file)
 
-# Extract the columns to delete from the YAML dictionary
+# Extract the columns to delete from the YAML
 columns_to_delete = yaml_data["columns_to_delete"]
+
+# Extract the columns to rename from the YAML
+columns_to_rename = yaml_data["columns_to_rename"]
 
 
 def remove_by_dict(df: DataFrame, to_delete: list) -> DataFrame:
@@ -170,12 +172,12 @@ if __name__ == "__main__":
         for j, df in enumerate(df_list):
             blockPrint()
             df_list[j] = drop_empty_columns(df_list[j])
-            df_list[j].columns = columns_check(df_list[j].columns)
+            df_list[j] = columns_check(df_list[j])
             df_list[j].columns = clean_transform(df_list[j].columns, False)
             df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^unnamed")]
             df_list[j] = insert_period(df_list[j], name_list[j])
             df_list[j] = remove_by_dict(df_list[j], columns_to_delete)
-            df_list[j].columns = columns_check(df_list[j].columns)
+            df_list[j] = df_list[j].rename(columns=columns_to_rename)
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
