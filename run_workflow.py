@@ -172,9 +172,9 @@ if __name__ == "__main__":
         for j, df in enumerate(df_list):
             blockPrint()
             df_list[j] = drop_empty_columns(df_list[j])
+            df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^unnamed")]
             df_list[j] = columns_check(df_list[j])
             df_list[j].columns = clean_transform(df_list[j].columns, False)
-            df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^unnamed")]
             df_list[j] = insert_period(df_list[j], name_list[j])
             df_list[j] = remove_by_dict(df_list[j], columns_to_delete)
             df_list[j] = df_list[j].rename(columns=columns_to_rename)
