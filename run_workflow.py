@@ -8,7 +8,7 @@ from merge_by_lev.tools import check_empty_df
 from pydbsmgr import *
 from pydbsmgr.lightest import LightCleaner
 from pydbsmgr.utils.azure_sdk import StorageController
-from pydbsmgr.utils.tools import ColumnsDtypes, columns_check, erase_files, merge_by_coincidence
+from pydbsmgr.utils.tools import ColumnsCheck, ColumnsDtypes, erase_files, merge_by_coincidence
 
 from utilities.catalog import EventController
 from utilities.upload_to_sql import UploadToSQL
@@ -175,12 +175,15 @@ if __name__ == "__main__":
             blockPrint()
             df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^Unnamed")]
             df_list[j] = drop_empty_columns(df_list[j])
-            df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^unnamed")]
-            df_list[j] = columns_check(df_list[j])
-            df_list[j].columns = clean_transform(df_list[j].columns, False)
+            column_handler = ColumnsCheck(df_list[j])
+            df_list[j] = column_handler.get_frame()
+            df_list[j].columns = clean_transform(df_list[j].columns, False, remove_numeric=False)
+            df_list[j].columns = df_list[j].columns.str.replace("__", "_")
             df_list[j] = insert_period(df_list[j], name_list[j])
             df_list[j] = remove_by_dict(df_list[j], columns_to_delete)
             df_list[j] = df_list[j].rename(columns=columns_to_rename)
+            column_handler = ColumnsCheck(df_list[j])
+            df_list[j] = column_handler._check_reserved_words()
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
