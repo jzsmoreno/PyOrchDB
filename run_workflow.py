@@ -162,6 +162,7 @@ if __name__ == "__main__":
     erase_files()
     tables = []
     table_names = []
+    table_data = []
     client_name = input("Insert client name : ")
     for dir in directories:
         print(f"Computing: {dir}")
@@ -191,12 +192,24 @@ if __name__ == "__main__":
 
         for name in names:
             try:
-                name = re.findall(name, "[A-Za-z]")[0]
+                name = (name.split("-"))[-1]
+                name = name.replace(" ", "")
+                if name.find("Sheet") != -1:
+                    name = ""
             except:
                 None
-            table_names.append("TB_BI_" + client_name.lower() + (dir.strip()).capitalize())
+            table_names.append("TB_BI_" + client_name.lower() + (dir.strip()).capitalize() + name)
+            table_data.append([len(table_names), table_names[-1]])
         tables += dfs
 
+    print("The table names will be as follows :")
+    print(tabulate(table_data, headers=["index", "names"], tablefmt="grid"))
+    rename_tables = input("You want to rename the tables [y/n] : ")
+    if rename_tables == "y":
+        for i, table_name in enumerate(table_names):
+            message = "insert the new name for the table {%s} : " % table_name
+            rename_table = input(message)
+            table_names[i] = rename_table
     print("Starting the cleaning process...")
     blockPrint()
     for i, table in enumerate(tables):
