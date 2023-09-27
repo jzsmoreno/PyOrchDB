@@ -4,6 +4,7 @@ import sys
 from typing import List
 
 from merge_by_lev import *
+from merge_by_lev.schema_config import ColumnObfuscation, DataSchema
 from merge_by_lev.tools import check_empty_df
 from pydbsmgr import *
 from pydbsmgr.lightest import LightCleaner
@@ -215,6 +216,11 @@ if __name__ == "__main__":
     for i, table in enumerate(tables):
         if not isinstance(tables[i], DataFrame):
             tables[i] = tables[i].to_frame().reset_index()
+        if table_names[i].find("Encuesta") != -1 or table_names[i].find("Survey") != -1:
+            column_handler = ColumnObfuscation(tables[i])
+            tables[i] = column_handler.get_frame(
+                table_names[i] + ".json", True, conn_string, container_name
+            )
         cleaner = LightCleaner(tables[i])
         tables[i] = cleaner.clean_frame()
         try:
@@ -222,12 +228,14 @@ if __name__ == "__main__":
             tables[i] = handler.correct()
         except:
             None
+        schema_handler = DataSchema(tables[i])
+        tables[i] = schema_handler.get_table()
     enablePrint()
 
     print("Completed!")
     container_name = "processed"  # Is a fixed variable
     controller_ = StorageController(conn_string, container_name)
-    controller_.write_parquet(project, tables, table_names)
+    controller_.write_pyarrow(project, tables, table_names)
 
     del tables, dfs, df_list, controller  # The ram is released
 
