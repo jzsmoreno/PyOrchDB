@@ -4,6 +4,7 @@ import sys
 from typing import List
 
 from merge_by_lev import *
+from merge_by_lev.schema_config import DataSchema
 from pydbsmgr import *
 from pydbsmgr.lightest import LightCleaner
 from pydbsmgr.utils.azure_sdk import StorageController
@@ -218,14 +219,14 @@ if __name__ == "__main__":
         tables[i] = cleaner.clean_frame()
         handler = ColumnsDtypes(tables[i])
         tables[i] = handler.correct()
+        schema_handler = DataSchema(tables[i])
+        tables[i] = schema_handler.get_table()
     enablePrint()
 
     print("Completed!")
     container_name = "processed"  # Is a fixed variable
     controller_processed = StorageController(conn_string, container_name)
-
-    # By default the compression is `True`
-    controller_processed.upload_parquet(project, tables, table_names, compression=False)
+    controller_processed.write_pyarrow(project, tables, table_names)
 
     del tables, dfs, df_list, controller  # The ram is released
 
