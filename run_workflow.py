@@ -226,7 +226,15 @@ if __name__ == "__main__":
     print("Completed!")
     container_name = "processed"  # Is a fixed variable
     controller_processed = StorageController(conn_string, container_name)
-    controller_processed.write_pyarrow(project, tables, table_names)
+    files_not_loaded = controller_processed.write_pyarrow(project, tables, table_names)
+    try:
+        files_not_loaded = [
+            (files_not).replace("TB_BI_" + client_name.lower(), "")
+            for files_not in files_not_loaded
+        ]
+        manager.remove(files_not_loaded)
+    except:
+        None
 
     del tables, dfs, df_list, controller  # The ram is released
 
