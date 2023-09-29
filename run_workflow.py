@@ -193,7 +193,7 @@ if __name__ == "__main__":
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
-        dfs, names, _ = merge_by_similarity(df_list, name_list, 9)
+        dfs, names, _ = merge_by_similarity(df_list, name_list, 9, 4)
 
         for name in names:
             try:
