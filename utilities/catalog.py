@@ -28,6 +28,7 @@ class EventController(StorageController):
 
     def remove(self, files_not_loaded: List[str]) -> None:
         self.cat_, _ = super().get_excel_csv(self.directory, "catalog.csv")
+        self.cat_ = self.cat_[0]
         self.cat_ = self.cat_[~self.cat_["files"].str.contains("|".join(files_not_loaded))]
         super().upload_excel_csv(self.directory, [self.cat_], ["catalog"], overwrite=True)
 
