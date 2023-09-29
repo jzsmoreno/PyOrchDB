@@ -5,6 +5,7 @@ from typing import List
 
 from merge_by_lev import *
 from merge_by_lev.schema_config import DataSchema
+from merge_by_lev.tools import check_empty_df
 from pydbsmgr import *
 from pydbsmgr.lightest import LightCleaner
 from pydbsmgr.utils.azure_sdk import StorageController
@@ -171,6 +172,10 @@ if __name__ == "__main__":
         controller.set_BlobPrefix(filter_files)
         df_list, name_list = controller.get_excel_csv(directory, "\w+.(xlsx|csv)", True)
         df_list, name_list = check_empty_df(df_list, name_list)
+
+        with open("./logs/" + dir + ".txt", "w") as outfile:
+            for row in name_list:
+                outfile.write(row + "\n")
         enablePrint()
         for j, df in enumerate(df_list):
             blockPrint()
