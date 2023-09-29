@@ -24,6 +24,7 @@ class UploadToSQL:
         db_conn_string: str,
         directory: str,
         auto_resolve: bool = True,
+        frac: float = 0.01,
         chunk_size: int = 20,
     ):
         """Receives a list of the paths to the `.parquet` files to be uploaded to SQL"""
@@ -35,7 +36,7 @@ class UploadToSQL:
         for file in files:
             df, file_name = self.controller.get_parquet(directory, file)
             if auto_resolve:
-                n = int(df.shape[0] * 0.1)
+                n = int(df.shape[0] * frac)
                 df_chunks = [df[i : i + n] for i in range(0, df.shape[0], n)]
             else:
                 df_chunks = np.array_split(df[0], chunk_size)
