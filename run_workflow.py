@@ -172,6 +172,10 @@ if __name__ == "__main__":
         controller.set_BlobPrefix(filter_files)
         df_list, name_list = controller.get_excel_csv(directory, "\w+.(xlsx|csv)", True)
         df_list, name_list = check_empty_df(df_list, name_list)
+
+        with open("./logs/" + dir + ".txt", "w") as outfile:
+            for row in name_list:
+                outfile.write(row + "\n")
         enablePrint()
         for j, df in enumerate(df_list):
             blockPrint()
@@ -189,7 +193,7 @@ if __name__ == "__main__":
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
-        dfs, names, _ = merge_by_similarity(df_list, name_list, 9, 5)
+        dfs, names, _ = merge_by_similarity(df_list, name_list, 9)
 
         for name in names:
             try:
@@ -235,7 +239,15 @@ if __name__ == "__main__":
     print("Completed!")
     container_name = "processed"  # Is a fixed variable
     controller_ = StorageController(conn_string, container_name)
-    controller_.write_pyarrow(project, tables, table_names)
+    files_not_loaded = controller_.write_pyarrow(project, tables, table_names)
+    try:
+        files_not_loaded = [
+            (files_not).replace("TB_BI_" + client_name.lower(), "")
+            for files_not in files_not_loaded
+        ]
+        manager.remove(files_not_loaded)
+    except:
+        None
 
     del tables, dfs, df_list, controller  # The ram is released
 

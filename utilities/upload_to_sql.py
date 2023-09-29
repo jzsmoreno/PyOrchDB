@@ -7,8 +7,8 @@ import pyodbc
 from pandas.core.frame import DataFrame
 from pydbsmgr.utils.azure_sdk import StorageController
 
-sql_types = ["FLOAT", "INT", "BIGINT", "DATE", "VARCHAR(MAX)"]
-pandas_types = ["float64", "int32", "int64", "datetime64[ns]", "object"]
+sql_types = ["FLOAT", "INT", "BIGINT", "DATE", "VARCHAR(MAX)", "BIT"]
+pandas_types = ["float64", "int32", "int64", "datetime64[ns]", "object", "bool"]
 datatype_dict = dict(zip(pandas_types, sql_types))
 
 
