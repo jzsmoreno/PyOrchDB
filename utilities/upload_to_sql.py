@@ -18,7 +18,9 @@ class UploadToSQL:
     def __init__(self, conn_string, container_name):
         self.controller = StorageController(conn_string, container_name)
 
-    def upload_parquet(self, files: List[str], db_conn_string: str, directory: str):
+    def upload_parquet(
+        self, files: List[str], db_conn_string: str, directory: str, chunk_size: int = 20
+    ):
         """Receives a list of the paths to the `.parquet` files to be uploaded to SQL"""
         username = input("Enter the database user : ")
         password = input("Enter the database password : ")
@@ -27,7 +29,7 @@ class UploadToSQL:
         print(db_conn_string)
         for file in files:
             df, file_name = self.controller.get_parquet(directory, file)
-            df_chunks = np.array_split(df[0], 20)
+            df_chunks = np.array_split(df[0], chunk_size)
 
             for chunk in df_chunks:
                 con = pyodbc.connect(db_conn_string, autocommit=True)
