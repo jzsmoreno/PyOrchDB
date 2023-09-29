@@ -32,9 +32,13 @@ class EventController(StorageController):
         self.cat_ = self.cat_[~self.cat_["files"].str.contains("|".join(files_not_loaded))]
         super().upload_excel_csv(self.directory, [self.cat_], ["catalog"], overwrite=True)
 
-    def update(self, events: DataFrame, overwrite: bool = True) -> None:
-        self.cat_ = pd.concat([self.cat_, events], ignore_index=True)
-        super().upload_excel_csv(self.directory, [self.cat_], ["catalog"], overwrite=overwrite)
+    def update(self, files: List[str], overwrite: bool = True) -> None:
+        events = pd.DataFrame()
+        events["files"] = files
+        events["datetime"] = datetime.datetime.now()
+        catalog = self.audit()
+        catalog = pd.concat([catalog, events], ignore_index=True)
+        super().upload_excel_csv(self.directory, [catalog], ["catalog"], overwrite=overwrite)
 
     def _clean(self) -> None:
         super().upload_excel_csv(self.directory, [pd.DataFrame()], ["catalog"], overwrite=True)

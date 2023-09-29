@@ -154,6 +154,7 @@ if __name__ == "__main__":
         manager.create_log(files)
     except:
         files = manager.diff(files)
+        manager.update(files)
 
     controller.set_BlobPrefix(files)
     directories = get_directories(files)
@@ -244,6 +245,8 @@ if __name__ == "__main__":
     del tables, dfs, df_list, controller  # The ram is released
 
     files_processed = controller_processed.get_all_blob()
+    for dir in directories:
+        files_processed = list_filter(files_processed, dir)
     # list of files to be read `.parquet`
     files_parquet = list_filter(files_processed, ".parquet")
 
