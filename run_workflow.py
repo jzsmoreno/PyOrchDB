@@ -245,12 +245,14 @@ if __name__ == "__main__":
     del tables, dfs, df_list, controller  # The ram is released
 
     files_processed = controller_processed.get_all_blob()
+    files_filtered = []
     for dir in directories:
-        files_processed = list_filter(files_processed, dir)
+        files_filtered += list_filter(files_processed, dir)
+    print("These are the tables that will be uploaded to SQL or will be updated :", files_filtered)
     # list of files to be read `.parquet`
-    files_parquet = list_filter(files_processed, ".parquet")
+    files_parquet = list_filter(files_filtered, ".parquet")
 
     db_handler = UploadToSQL(conn_string, container_name)
     db_handler.upload_parquet(files_parquet, db_conn_string, project)
 
-    del files_processed
+    del files_processed, files_filtered
