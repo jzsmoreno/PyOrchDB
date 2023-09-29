@@ -154,6 +154,7 @@ if __name__ == "__main__":
         manager.create_log(files)
     except:
         files = manager.diff(files)
+        manager.update(files)
 
     controller.set_BlobPrefix(files)
     directories = get_directories(files)
@@ -180,7 +181,7 @@ if __name__ == "__main__":
         for j, df in enumerate(df_list):
             blockPrint()
             df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^Unnamed")]
-            df_list[j] = drop_empty_columns(df_list[j])
+            # df_list[j] = drop_empty_columns(df_list[j])
             column_handler = ColumnsCheck(df_list[j])
             df_list[j] = column_handler.get_frame()
             df_list[j].columns = clean_transform(df_list[j].columns, False, remove_numeric=False)
@@ -252,7 +253,8 @@ if __name__ == "__main__":
     del tables, dfs, df_list, controller  # The ram is released
 
     files_processed = controller_.get_all_blob()
-
+    for dir in directories:
+        files_processed = list_filter(files_processed, dir)
     # list of files to be read `.parquet`
     files_parquet = list_filter(files_processed, ".parquet")
 

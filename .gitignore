@@ -156,6 +156,7 @@ cython_debug/
 /exe_*.ps1 
 /output.txt
 /test_parquet.py
+/test_workflow.py
 /logs/*.txt
 
 # PyCharm
