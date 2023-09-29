@@ -36,9 +36,9 @@ class UploadToSQL:
         for file in files:
             df, file_name = self.controller.get_parquet(directory, file)
             if auto_resolve:
-                if len(df) >= 0.5e6:
-                    n = int(df.shape[0] * frac)
-                    df_chunks = [df[i : i + n] for i in range(0, df.shape[0], n)]
+                if len(df[0]) >= 0.5e6:
+                    n = int((df[0]).shape[0] * frac)
+                    df_chunks = [(df[0])[i : i + n] for i in range(0, (df[0]).shape[0], n)]
                 else:
                     df_chunks = np.array_split(df[0], chunk_size)
             else:
