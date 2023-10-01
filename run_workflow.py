@@ -261,6 +261,6 @@ if __name__ == "__main__":
     files_parquet = list_filter(files_filtered, ".parquet")
 
     db_handler = UploadToSQL(conn_string, container_name)
-    db_handler.upload_parquet(files_parquet, db_conn_string, project)
+    db_handler.upload_parquet(files_parquet, db_conn_string, project, frac=0.005)
 
     del files_processed, files_filtered
