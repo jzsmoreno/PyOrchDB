@@ -157,7 +157,7 @@ cython_debug/
 /exe_*.ps1 
 /output.txt
 /logs/*.txt
-/logs/*.json
+/logs/*.pkl
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

@@ -1,5 +1,5 @@
-import json
 import os
+import pickle
 import re
 import time
 from typing import List, Tuple
@@ -19,20 +19,20 @@ def load_cache(file_path: str) -> set:
     """Read cache function.
 
     Args:
-        file_path (str): path where the file is located
+        file_path (`str`): path where the file is located
 
     Returns:
         set: the stored cache
     """
     try:
-        with open(file_path, "r") as file:
-            data = json.load(file)
+        with open(file_path, "rb") as file:
+            data = pickle.load(file)
         data_set = set()
         for row in data:
             data_set.add(tuple(row))
         return data_set
 
-    except (FileNotFoundError, json.JSONDecodeError):
+    except (FileNotFoundError, UnicodeDecodeError, EOFError):
         return set()
 
 
@@ -40,19 +40,19 @@ def save_cache(file_path: str, data: set) -> None:
     """Function that saves the cache and overwrites it.
 
     Args:
-        file_path (str): path where the cache will be saved
-        data (set): the cache to be saved
+        file_path (`str`): path where the cache will be saved
+        data (`set`): the cache to be saved
     """
-    with open(file_path, "w") as file:
-        json.dump(list(data), file)
+    with open(file_path, "wb") as file:
+        pickle.dump(data, file)
 
 
 def add_cache(cache: set, data_set: set) -> set:
     """Update cache with new information.
 
     Args:
-        cache (set): the cache to be updated
-        data_set (set): the information to update the cache with
+        cache (`set`): the cache to be updated
+        data_set (`set`): the information to update the cache with
 
     Returns:
         set: the cache with the updated information
@@ -66,11 +66,11 @@ def is_duplicate(cache: set, data: list) -> Tuple[bool, list, set]:
     """Function that implements the logic to avoid duplicate inserts.
 
     Args:
-        cache (set): the cache to be checked
-        data (list): the data to be compared with
+        cache (`set`): the cache to be checked
+        data (`list`): the data to be compared with
 
     Returns:
-        Tuple[bool, list, set]: _description_
+        Tuple[`bool`, `list`, `set`]: indicates whether inserts were previously performed, the difference of the inserts and their set.
     """
     data_set = set()
     for row in data:
@@ -104,7 +104,7 @@ class UploadToSQL:
         chunk_size: int = 20,
         max_retries: int = 3,
         retry_delay: int = 5,
-        cache_file_path: str = "./logs/cache.json",
+        cache_file_path: str = "./logs/cache.pkl",
     ):
         """Receives a list of the paths to the `.parquet` files to be uploaded to SQL"""
         username = input("Enter the database user : ")
