@@ -4,7 +4,7 @@ import sys
 from typing import List
 
 from merge_by_lev import *
-from merge_by_lev.schema_config import ColumnObfuscation, DataSchema
+from merge_by_lev.schema_config import DataSchema, StandardColumns
 from merge_by_lev.tools import check_empty_df
 from pydbsmgr import *
 from pydbsmgr.lightest import LightCleaner
@@ -222,7 +222,7 @@ if __name__ == "__main__":
         if not isinstance(tables[i], DataFrame):
             tables[i] = tables[i].to_frame().reset_index()
         if table_names[i].find("Encuesta") != -1 or table_names[i].find("Survey") != -1:
-            column_handler = ColumnObfuscation(tables[i])
+            column_handler = StandardColumns(tables[i])
             tables[i] = column_handler.get_frame(
                 table_names[i] + ".json", True, conn_string, container_name
             )
