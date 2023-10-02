@@ -1,5 +1,8 @@
+import json
+import os
 import re
-from typing import List
+import time
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -12,8 +15,81 @@ pandas_types = ["float64", "int32", "int64", "datetime64[ns]", "object", "bool"]
 datatype_dict = dict(zip(pandas_types, sql_types))
 
 
+def load_cache(file_path: str) -> set:
+    """Read cache function.
+
+    Args:
+        file_path (str): path where the file is located
+
+    Returns:
+        set: the stored cache
+    """
+    try:
+        with open(file_path, "r") as file:
+            data = json.load(file)
+        data_set = set()
+        for row in data:
+            data_set.add(tuple(row))
+        return data_set
+
+    except (FileNotFoundError, json.JSONDecodeError):
+        return set()
+
+
+def save_cache(file_path: str, data: set) -> None:
+    """Function that saves the cache and overwrites it.
+
+    Args:
+        file_path (str): path where the cache will be saved
+        data (set): the cache to be saved
+    """
+    with open(file_path, "w") as file:
+        json.dump(list(data), file)
+
+
+def add_cache(cache: set, data_set: set) -> set:
+    """Update cache with new information.
+
+    Args:
+        cache (set): the cache to be updated
+        data_set (set): the information to update the cache with
+
+    Returns:
+        set: the cache with the updated information
+    """
+    for item in data_set:
+        cache.add(item)
+    return cache
+
+
+def is_duplicate(cache: set, data: list) -> Tuple[bool, list, set]:
+    """Function that implements the logic to avoid duplicate inserts.
+
+    Args:
+        cache (set): the cache to be checked
+        data (list): the data to be compared with
+
+    Returns:
+        Tuple[bool, list, set]: _description_
+    """
+    data_set = set()
+    for row in data:
+        data_set.add(tuple(row))
+
+    data_set = data_set.difference(cache)
+    data = []
+    if data_set:
+        for item in data_set:
+            data.append(item)
+        return False, data, data_set
+    else:
+        return True, data, data_set
+
+
 class UploadToSQL:
-    """Allows uploading a set of `.parquet` files to SQL tables"""
+    """Allows uploading a set of `.parquet` files to SQL tables using cache functionality.
+    The functionality includes a retry mechanism to handle possible errors or interruptions during the loading process.
+    This makes the loading process more resilient to transient problems."""
 
     def __init__(self, conn_string, container_name):
         self.controller = StorageController(conn_string, container_name)
@@ -26,6 +102,9 @@ class UploadToSQL:
         auto_resolve: bool = True,
         frac: float = 0.01,
         chunk_size: int = 20,
+        max_retries: int = 3,
+        retry_delay: int = 5,
+        cache_file_path: str = "./logs/cache.json",
     ):
         """Receives a list of the paths to the `.parquet` files to be uploaded to SQL"""
         username = input("Enter the database user : ")
@@ -66,29 +145,55 @@ class UploadToSQL:
                         msg += "Error: {%s}" % e
                         return print(f"{warning_type}: {msg}")
 
-                """Insert data"""
-                cur.fast_executemany = True
-                cur.executemany(
-                    self._insert_table_query(file_name[0], chunk),
-                    [
-                        [
-                            None
-                            if str(value) == "<NA>"
-                            or str(value) == ""
-                            or (isinstance(value, float) and np.isnan(value))
-                            else value
-                            for value in row
+                cache = load_cache(cache_file_path)
+                for attempt in range(max_retries):
+                    try:
+                        """Insert data"""
+                        data = [
+                            [
+                                None
+                                if str(value) == "<NA>"
+                                or str(value) == ""
+                                or (isinstance(value, float) and np.isnan(value))
+                                else value
+                                for value in row
+                            ]
+                            for row in chunk.values.tolist()
                         ]
-                        for row in chunk.values.tolist()
-                    ],
-                )
-                con.close()
+                        duplicate_data, data, data_set = is_duplicate(cache, data)
+                        if duplicate_data:
+                            print("Data already exists, skipping insert.")
+                            break
 
-                msg = "Table {%s}, successfully imported!" % file_name[0]
-                print(f"{msg}")
+                        cur.fast_executemany = True
+                        cur.executemany(
+                            self._insert_table_query(file_name[0], chunk),
+                            data,
+                        )
+                        con.close()
 
-                print(chunk)
-                print(file_name[0])
+                        msg = "Table {%s}, successfully imported!" % file_name[0]
+                        print(f"{msg}")
+
+                        print(chunk)
+                        print(file_name[0])
+                        cache = add_cache(cache, data_set)
+                        save_cache(cache_file_path, cache)
+                        break
+                    except pyodbc.OperationalError as e:
+                        print(f"Error: {e}")
+                        print(f"Retry attempt {attempt + 1}/{max_retries}")
+
+                        # Wait before the next retry
+                        time.sleep(retry_delay)
+                else:
+                    # The loop completed without breaking, meaning all retries failed
+                    print("Error: Failed to insert data after multiple attempts.")
+        try:
+            os.remove(cache_file_path)
+            print(f"The cache has been deleted.")
+        except OSError as e:
+            print(f"Error: {e}")
 
     def _create_table_query(self, table_name: str, df: DataFrame) -> str:
         """Constructs the query that will be used to create the table"""
