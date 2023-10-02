@@ -158,7 +158,7 @@ cython_debug/
 /test_parquet.py
 /test_workflow.py
 /logs/*.txt
-/logs/*.json
+/logs/*.pkl
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
