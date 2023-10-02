@@ -78,15 +78,11 @@ def is_duplicate(cache: set, data: list) -> Tuple[bool, list, set]:
 
     data_set = data_set.difference(cache)
     if data_set:
-        data = []
-        if data_set:
-            for item in data_set:
-                data.append(item)
-            return False, data, data_set
-        else:
-            return True, data, data_set
-    else:
+        for item in data_set:
+            data.append(item)
         return False, data, data_set
+    else:
+        return True, data, data_set
 
 
 class UploadToSQL:
