@@ -77,6 +77,7 @@ def is_duplicate(cache: set, data: list) -> Tuple[bool, list, set]:
         data_set.add(tuple(row))
 
     data_set = data_set.difference(cache)
+    data = []
     if data_set:
         for item in data_set:
             data.append(item)
