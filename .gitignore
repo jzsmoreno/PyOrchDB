@@ -155,6 +155,10 @@ cython_debug/
 # Ignore exe_<files>.ps1 for testing
 /exe_*.ps1 
 /output.txt
+/test_parquet.py
+/test_workflow.py
+/logs/*.txt
+/logs/*.pkl
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

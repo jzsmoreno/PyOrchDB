@@ -59,6 +59,9 @@ ps_command += f"az ml workspace create --resource-group {yaml_data['resource_gro
 ps_command += f" --name {yaml_data['workspace_name']}"
 ps_command += f" --location {yaml_data['location']}"
 ps_command += "\n}\ncatch{\n\tcontinue\n}\n"
+ps_command += f"az ml compute create -g {yaml_data['resource_group_name']} "
+ps_command += f"-w {yaml_data['workspace_name']} -f {yaml_data['instance_file']}"
+ps_command += "\n"
 
 
 if __name__ == "__main__":
@@ -68,9 +71,12 @@ if __name__ == "__main__":
     ps_command += f"--name {yaml_data['storage_account_name']} "
     ps_command += f"--resource-group {yaml_data['sa_resource_group_name']} --query 'connectionString' --output tsv)"
     ps_command += "\n"
+    ps_command += f"$db_conn_string = (az sql db show-connection-string -c odbc -n {yaml_data['database_name']} -s "
+    ps_command += f"{yaml_data['sql_server_name']} -a Sqlpassword --output tsv)"
+    ps_command += "\n"
     ps_command += f"Start-Process python -ArgumentList './{yaml_data['script_name']}', '{yaml_data['storage_account_name']}', "
     ps_command += f"$storageBlob_conn, '{yaml_data['sa_container_name']}', '{yaml_data['sa_resource_group_name']}', "
-    ps_command += f"'{yaml_data['exclude_files']}', '{yaml_data['sa_container_directory']}' -NoNewWindow -Wait"
+    ps_command += f"'{yaml_data['exclude_files']}', '{yaml_data['sa_container_directory']}', $db_conn_string -NoNewWindow -Wait"
     ps_command += "\n"
     # get storage account name
     ps_command += "$storageName = (az ml datastore list --query '[0].{storageName:account_name}' "
@@ -89,10 +95,9 @@ if __name__ == "__main__":
     ps_command += f"$storageName --account-key $storageKey --container-name azureml "
     ps_command += f"--file ./jobs/{yaml_data['job_script']} --name {yaml_data['job_script']}"
     ps_command += " --overwrite\n"
-    ps_command += f"az ml job create --name {yaml_data['job_name']} "
-    ps_command += f"--file {yaml_data['job_file']} "
-    ps_command += f"--workspace-name {yaml_data['workspace_name']} "
-    ps_command += f"--resource-group {yaml_data['resource_group_name']}"
+    ps_command += f"az ml job create -f {yaml_data['job_file']} "
+    ps_command += f"-w {yaml_data['workspace_name']} "
+    ps_command += f"-g {yaml_data['resource_group_name']}"
     ps_command += "\n"
 
     # save command_line into a run.ps1 file

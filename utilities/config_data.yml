@@ -1,0 +1,8 @@
+# columns to be deleted
+columns_to_delete:
+  - Column1
+  - Column3
+# columns to be renamed
+columns_to_rename:
+  Column2 : Column5
+  Column4 : Column6
