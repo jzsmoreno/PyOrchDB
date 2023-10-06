@@ -26,3 +26,19 @@ class UploadModelToML:
         except Exception as e:
             print(f"Error al conectar con Azure Machine Learning: {str(e)}")
 
+
+if __name__ == "__main__":
+    subscription_id = 'suscription id'
+    resource_group = 'resource name'
+    workspace_name = 'name of the workspace in Azure ML'
+    model_name='name of the model'
+
+    # Obtiene la ruta absoluta del modelo .pkl relativo al script
+    model_path = os.path.join(os.path.dirname(__file__), model_name + '.pkl')
+
+    azureml_controller=UploadModelToML(subscription_id,resource_group,workspace_name)
+    azureml_controller.upload_model(model_name=model_name,model_path=model_path)
+
+
+
+
