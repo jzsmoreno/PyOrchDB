@@ -16,6 +16,7 @@ ipython
 SQLAlchemy
 pyyaml
 azure-storage-blob==12.16.0
+azureml-sdk==1.53.0
 python-dotenv==1.0.0
 openpyxl==3.1.2
 pyarrow
