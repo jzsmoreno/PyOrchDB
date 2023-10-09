@@ -24,7 +24,10 @@ class UploadModelToML:
             )
             print("Successful connection to Azure Machine Learning.")
             loaded_model = Model.register(
-                workspace=workspace, model_path=model_path, model_name=model_name, tags={"type": "pkl"}
+                workspace=workspace,
+                model_path=model_path,
+                model_name=model_name,
+                tags={"type": "pkl"},
             )
             print(".pkl model successfully registered in Azure Machine Learning.")
         except Exception as e:
