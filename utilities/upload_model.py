@@ -17,14 +17,17 @@ class UploadModelToML:
         """Create a connection to the `azure ml` resource
         and to load the model you need to add the path and name of your model."""
         try:
-            ws = Workspace(
+            workspace = Workspace(
                 subscription_id=self._subscription_id,
                 resource_group=self._resource_group,
                 workspace_name=self._workspace_name,
             )
             print("Successful connection to Azure Machine Learning.")
-            modelo_cargado = Model.register(
-                workspace=ws, model_path=model_path, model_name=model_name, tags={"type": "pkl"}
+            loaded_model = Model.register(
+                workspace=workspace,
+                model_path=model_path,
+                model_name=model_name,
+                tags={"type": "pkl"},
             )
             print(".pkl model successfully registered in Azure Machine Learning.")
         except Exception as e:
