@@ -109,4 +109,16 @@ Here are the instructions to install [`Azure CLI`](https://learn.microsoft.com/e
     .\run.ps1
     ```
 
+## Loading a serialized model in Azure ML Models
 
+If you have a serialized `.pkl` model and you want to deploy it to a workspace in [`Azure Machine Learning`](https://learn.microsoft.com/en-us/azure/machine-learning/concept-workspace?view=azureml-api-2), you must execute the following commands:
+
+```powershell
+$subscription_id = (az account show --query 'id' --output tsv)
+$resource_group_name = '<resource_group_name>'
+$workspace_name = '<workspace_name>'
+$model_name = '<model_name>'
+Start-Process python -ArgumentList './utilities/upload_model.py', $subscription_id, $resource_group_name, $workspace_name, $model_name -NoNewWindow -Wait
+```
+
+This will create an endpoint to consume the model.
