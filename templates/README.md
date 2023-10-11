@@ -40,3 +40,45 @@ $storage_account_name = '<storage_account_name>'
 az storage container create --name rawdata --account-name $storage_account_name
 az storage container create --name processed --account-name $storage_account_name
 ```
+
+## Manual infrastructure deployment
+
+If you do not want to use _Azure Resource Manager_, you can run the following commands for the [`storage account`](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview):
+```powershell
+$storage_account_name = '<storage_account_name>'
+$resourceGroupName = '<resourceGroupName>'
+$location_name = '<location_name>'
+az storage account create -n $storage_account_name -g $resourceGroupName --kind StorageV2 -l $location_name --sku Standard_LRS -t Account
+az storage container create --name rawdata --account-name $storage_account_name
+az storage container create --name processed --account-name $storage_account_name
+az storage account hns-migration start --type upgrade -n $storage_account_name -g $resourceGroupName
+```
+
+Previous commands already include the upgrade with [`Azure Data Lake Gen2`](https://learn.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-best-practices) capabilities and the following are the commands for server creation:
+
+```powershell
+$sql_server_name = '<sql_server_name>'
+$admin_username = '<admin_username>'
+$admin_password = '<admin_password>' # It is recommended to store this password securely, for example using Azure Key Vault
+az sql server create -l $location_name -g $resourceGroupName -n $sql_server_name -u $admin_username -p $admin_password -e false
+```
+
+  Some of the benefits of updating your storage account is that you can perform operations such as `create`, `show`, `file list`, `delete`, `directory create`, `directory show`, `directory move`, `directory delete` and `directory exists`. The first ones follow the following syntax and are instructions that are executed at the container level.
+
+```powershell
+az storage fs <action> -n <container name> --account-name $storage_account_name --auth-mode login
+```
+While the second ones prefixed with _directory_ are executed at the folder system level.
+```powershell
+az storage fs <action> -n <directory_name> -f <container name> --account-name $storage_account_name --auth-mode login
+```
+
+We also have file-level instructions such as `download`, `list`, `upload`, `show`, `move` and `delete`, the syntax used for _downloading_ and _uploading_ files is as follows:
+```powershell
+az storage fs file <action> -s '<local_path>' -p <cloud path> -f <container name> --account-name $storage_account_name --auth-mode login
+```
+For the rest of the commands mentioned at the file level, the following syntax is used.
+
+```powershell
+az storage fs file <action> -p <file> -f <container name> --account-name $storage_account_name --auth-mode login
+```
