@@ -77,7 +77,7 @@ We also have file-level instructions such as `download`, `list`, `upload`, `show
 ```powershell
 az storage fs file <action> -s '<local_path>' -p <cloud path> -f <container name> --account-name $storage_account_name --auth-mode login
 ```
-For the rest of the commands mentioned at the file level, the following syntax is used.
+The only difference is that for uploading the label will be `-s` while for downloading it will be `-d`. For the rest of the commands mentioned at the file level, the following syntax is used.
 
 ```powershell
 az storage fs file <action> -p <file> -f <container name> --account-name $storage_account_name --auth-mode login
