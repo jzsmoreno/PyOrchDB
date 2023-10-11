@@ -59,6 +59,45 @@ Here are the instructions to install [`Azure CLI`](https://learn.microsoft.com/e
     ```powershell
     az extension update -n ml
     ```
+## Project structure
+
+The project is structured as follows:
+
+    ├── jobs
+    │   ├── models
+    │   │   └── .gitignore
+    │   ├── README.md
+    │   ├── create-instance.yml
+    │   ├── experiment_job.yml
+    │   ├── job_workflow.py
+    │   ├── pipeline_job.yml
+    │   ├── requirements.txt
+    │   └── upload_model.py
+    ├── logs
+    │   ├── README.md
+    ├── templates
+    │   ├── README.md
+    │   ├── delete_all_resources.ps1
+    │   ├── run_template.ps1
+    │   └── template.json
+    ├── utilities
+    │   ├── table_upload
+    │   │   ├── __init__.py
+    │   │   └── upload_to_sql_with_cache.py
+    │   ├── __init__.py
+    │   ├── catalog.py
+    │   ├── config_data.yml
+    │   └── upload_to_sql.py
+    ├── .gitignore
+    ├── .pre-commit-config.yaml
+    ├── LICENSE
+    ├── README.md
+    ├── config.yml
+    ├── diagram.png
+    ├── pipeline.py
+    ├── requirements.txt
+    ├── run.ps1
+    └── run_workflow.py
 
 ## ETL creation and execution
 

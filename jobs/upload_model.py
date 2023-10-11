@@ -120,5 +120,5 @@ if __name__ == "__main__":
 
     print("Deploying the model...")
     azureml_controller.deploy_model()
-    
+
     print("Model deployed successfully")
