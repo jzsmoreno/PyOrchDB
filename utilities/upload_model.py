@@ -81,7 +81,7 @@ class UploadModelToML:
             name="blue",
             endpoint_name=self.online_endpoint_name,
             model=model,
-            instance_type="Standard_DS2_v2",
+            instance_type="Standard_D2as_v4",
             instance_count=1,
         )
         # create the online deployment

@@ -194,7 +194,7 @@ if __name__ == "__main__":
             enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
-        dfs, names, _ = merge_by_similarity(df_list, name_list, 9, 4)
+        dfs, names, _ = merge_by_similarity(df_list, name_list, 9, 4, drop_empty=True)
 
         for name in names:
             try:
@@ -217,7 +217,6 @@ if __name__ == "__main__":
             rename_table = input(message)
             table_names[i] = rename_table
     print("Starting the cleaning process...")
-    blockPrint()
     for i, table in enumerate(tables):
         if not isinstance(tables[i], DataFrame):
             tables[i] = tables[i].to_frame().reset_index()
@@ -235,7 +234,6 @@ if __name__ == "__main__":
             None
         schema_handler = DataSchema(tables[i])
         tables[i] = schema_handler.get_table()
-    enablePrint()
 
     print("Completed!")
     container_name = "processed"  # Is a fixed variable
