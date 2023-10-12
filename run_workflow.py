@@ -217,7 +217,7 @@ if __name__ == "__main__":
             rename_table = input(message)
             table_names[i] = rename_table
     print("Starting the cleaning process...")
-    blockPrint()
+
     for i, table in enumerate(tables):
         if not isinstance(tables[i], DataFrame):
             tables[i] = tables[i].to_frame().reset_index()
@@ -227,7 +227,6 @@ if __name__ == "__main__":
         tables[i] = handler.correct()
         schema_handler = DataSchema(tables[i])
         tables[i] = schema_handler.get_table()
-    enablePrint()
 
     print("Completed!")
     container_name = "processed"  # Is a fixed variable
