@@ -6,6 +6,7 @@ import pandas as pd
 import pyodbc
 from pandas.core.frame import DataFrame
 from pydbsmgr.utils.azure_sdk import StorageController
+from pydbsmgr.utils.tools import ColumnsDtypes
 
 sql_types = ["FLOAT", "INT", "BIGINT", "DATE", "VARCHAR(MAX)", "BIT"]
 pandas_types = ["float64", "int32", "int64", "datetime64[ns]", "object", "bool"]
@@ -35,6 +36,8 @@ class UploadToSQL:
         print(db_conn_string)
         for file in files:
             df, file_name = self.controller.get_parquet(directory, file)
+            handler = ColumnsDtypes(df[0])
+            df[0] = handler.correct()
             if auto_resolve:
                 if len(df[0]) >= 0.5e6:
                     n = int((df[0]).shape[0] * frac)
