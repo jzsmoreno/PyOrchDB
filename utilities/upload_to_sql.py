@@ -58,8 +58,7 @@ def add_cache(cache: set, data_set: set) -> set:
     Returns:
         set: the cache with the updated information
     """
-    for item in data_set:
-        cache.add(item)
+    cache.update(data_set)
     return cache
 
 
@@ -73,15 +72,12 @@ def is_duplicate(cache: set, data: list) -> Tuple[bool, list, set]:
     Returns:
         Tuple[`bool`, `list`, `set`]: indicates whether inserts were previously performed, the difference of the inserts and their set.
     """
-    data_set = set()
-    for row in data:
-        data_set.add(tuple(row))
+    data_set = set(tuple(row) for row in data)
 
     data_set = data_set.difference(cache)
     data = []
     if data_set:
-        for item in data_set:
-            data.append(item)
+        data.extend(data_set)
         return False, data, data_set
     else:
         return True, data, data_set
@@ -184,6 +180,7 @@ class UploadToSQL:
 
                         print(chunk)
                         print(file_name[0])
+                        data_set = set(tuple(row) for row in data)
                         cache = add_cache(cache, data_set)
                         save_cache(cache_file_path, cache)
                         break
