@@ -168,7 +168,7 @@ class UploadToSQL:
                             if duplicate_data:
                                 print("Data already exists, skipping insert.")
                                 break
-                        
+
                         cur.fast_executemany = True
                         cur.executemany(
                             self._insert_table_query(file_name[0], chunk),
