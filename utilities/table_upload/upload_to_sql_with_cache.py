@@ -4,6 +4,7 @@ import re
 import time
 from typing import List, Tuple
 
+import numba
 import numpy as np
 import pandas as pd
 import pyodbc
@@ -48,6 +49,7 @@ def save_cache(file_path: str, data: set) -> None:
         pickle.dump(data, file)
 
 
+@numba.jit
 def add_cache(cache: set, data_set: set) -> set:
     """Update cache with new information.
 
@@ -62,6 +64,7 @@ def add_cache(cache: set, data_set: set) -> set:
     return cache
 
 
+@numba.jit
 def is_duplicate(cache: set, data: list) -> Tuple[bool, list, set]:
     """Function that implements the logic to avoid duplicate inserts.
 
@@ -111,6 +114,7 @@ class UploadToSQL:
         db_conn_string = db_conn_string.replace("<password>", password)
         print(db_conn_string)
         for file in files:
+            exist_table = None
             df, file_name = self.controller.get_parquet(directory, file)
             handler = ColumnsDtypes(df[0])
             df[0] = handler.correct()
@@ -127,18 +131,20 @@ class UploadToSQL:
                 con = pyodbc.connect(db_conn_string, autocommit=True)
                 cur = con.cursor()
 
-                tables = pd.read_sql(
-                    "SELECT table_name = t.name FROM sys.tables t INNER JOIN sys.schemas s ON t.schema_id = s.schema_id ORDER BY t.name;",
-                    con,
-                )
-                print(tables)
+                if exist_table == None:
+                    tables = pd.read_sql(
+                        "SELECT table_name = t.name FROM sys.tables t INNER JOIN sys.schemas s ON t.schema_id = s.schema_id ORDER BY t.name;",
+                        con,
+                    )
+                    print(tables)
 
-                exist_table = tables["table_name"].isin([file_name[0]]).any()
+                    exist_table = tables["table_name"].isin([file_name[0]]).any()
 
                 if not exist_table:
                     try:
                         print("Creating the tables...")
                         cur.execute(self._create_table_query(file_name[0], chunk))
+                        exist_table = True
                     except pyodbc.Error as e:
                         warning_type = "UserWarning"
                         msg = "It was not possible to create the table {%s}\n" % file_name[0]
@@ -183,7 +189,7 @@ class UploadToSQL:
                         msg = "Table {%s}, successfully imported!" % file_name[0]
                         print(f"{msg}")
 
-                        print(chunk)
+                        # print(chunk)
                         print(file_name[0])
                         data_set = set(tuple(row) for row in data)
                         cache = add_cache(cache, data_set)
