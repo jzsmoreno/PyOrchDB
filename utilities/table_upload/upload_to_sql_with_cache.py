@@ -64,7 +64,6 @@ def add_cache(cache: set, data_set: set) -> set:
     return cache
 
 
-@numba.jit
 def is_duplicate(cache: set, data: list) -> Tuple[bool, list, set]:
     """Function that implements the logic to avoid duplicate inserts.
 
