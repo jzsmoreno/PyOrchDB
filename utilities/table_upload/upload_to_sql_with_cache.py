@@ -105,6 +105,8 @@ class UploadToSQL:
         max_retries: int = 3,
         retry_delay: int = 5,
         cache_file_path: str = "./logs/cache.pkl",
+        char_length: int = 2,
+        override_length: bool = False,
     ):
         """Receives a list of the paths to the `.parquet` files to be uploaded to SQL"""
         username = input("Enter the database user : ")
@@ -130,6 +132,10 @@ class UploadToSQL:
                 con = pyodbc.connect(db_conn_string, autocommit=True)
                 cur = con.cursor()
 
+                chunk = chunk.replace(" ", None)
+                chunk = chunk.replace("<NA>", None)
+                chunk = chunk.replace(np.datetime64("NaT"), None)
+
                 if exist_table == None:
                     tables = pd.read_sql(
                         "SELECT table_name = t.name FROM sys.tables t INNER JOIN sys.schemas s ON t.schema_id = s.schema_id ORDER BY t.name;",
@@ -142,7 +148,11 @@ class UploadToSQL:
                 if not exist_table:
                     try:
                         print("Creating the tables...")
-                        cur.execute(self._create_table_query(file_name[0], chunk))
+                        cur.execute(
+                            self._create_table_query(
+                                file_name[0], chunk, char_length, override_length
+                            )
+                        )
                         exist_table = True
                     except pyodbc.Error as e:
                         warning_type = "UserWarning"
@@ -156,11 +166,7 @@ class UploadToSQL:
                         """Insert data"""
                         data = [
                             [
-                                None
-                                if str(value) == "<NA>"
-                                or str(value) == ""
-                                or (isinstance(value, float) and np.isnan(value))
-                                else value
+                                None if (isinstance(value, float) and np.isnan(value)) else value
                                 for value in row
                             ]
                             for row in chunk.values.tolist()
@@ -209,12 +215,20 @@ class UploadToSQL:
         except OSError as e:
             print(f"Error: {e}")
 
-    def _create_table_query(self, table_name: str, df: DataFrame) -> str:
+    def _create_table_query(
+        self, table_name: str, df: DataFrame, char_length: int, override_length: bool
+    ) -> str:
         """Constructs the query that will be used to create the table"""
         query = "CREATE TABLE " + table_name + "("
         for j, column in enumerate(df.columns):
             matches = re.findall(r"([^']*)", str(df.iloc[:, j].dtype))
             dtype = datatype_dict[matches[0]]
+            if dtype == "VARCHAR(MAX)":
+                element = max(list(df[column].astype(str)), key=len)
+                max_string_length = int(len(element) * char_length)
+                if max_string_length == 0 or override_length:
+                    max_string_length = 256
+                dtype = dtype.replace("MAX", str(max_string_length))
             query += column + " " + dtype + ", "
 
         query = query[:-2]
