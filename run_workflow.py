@@ -168,7 +168,7 @@ if __name__ == "__main__":
     client_name = input("Insert client name : ")
     for dir in directories:
         print(f"Computing: {dir}")
-        blockPrint()
+        # blockPrint()
         filter_files = list_filter(files, dir)
         controller.set_BlobPrefix(filter_files)
         df_list, name_list = controller.get_excel_csv(directory, "\w+.(xlsx|csv)", True)
@@ -177,9 +177,9 @@ if __name__ == "__main__":
         with open("./logs/" + dir + ".txt", "w") as outfile:
             for row in name_list:
                 outfile.write(row + "\n")
-        enablePrint()
+        # enablePrint()
         for j, df in enumerate(df_list):
-            blockPrint()
+            # blockPrint()
             df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^Unnamed")]
             df_list[j] = drop_empty_columns(df_list[j])
             column_handler = ColumnsCheck(df_list[j])
@@ -191,7 +191,7 @@ if __name__ == "__main__":
             df_list[j] = df_list[j].rename(columns=columns_to_rename)
             column_handler = ColumnsCheck(df_list[j])
             df_list[j] = column_handler._check_reserved_words()
-            enablePrint()
+            # enablePrint()
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
         dfs, names, _ = merge_by_similarity(df_list, name_list, 9)
