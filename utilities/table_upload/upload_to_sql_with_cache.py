@@ -105,7 +105,7 @@ class UploadToSQL:
         max_retries: int = 3,
         retry_delay: int = 5,
         cache_file_path: str = "./logs/cache.pkl",
-        char_length: int = 2,
+        char_length: int = 256,
         override_length: bool = False,
     ):
         """Receives a list of the paths to the `.parquet` files to be uploaded to SQL"""
@@ -225,9 +225,9 @@ class UploadToSQL:
             dtype = datatype_dict[matches[0]]
             if dtype == "VARCHAR(MAX)":
                 element = max(list(df[column].astype(str)), key=len)
-                max_string_length = int(len(element) * char_length)
+                max_string_length = len(element)
                 if max_string_length == 0 or override_length:
-                    max_string_length = 256
+                    max_string_length = char_length
                 dtype = dtype.replace("MAX", str(max_string_length))
             query += column + " " + dtype + ", "
 

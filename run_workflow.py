@@ -15,16 +15,6 @@ from utilities.catalog import EventController
 from utilities.upload_to_sql import UploadToSQL
 
 
-# Disable
-def blockPrint():
-    sys.stdout = open(os.devnull, "w")
-
-
-# Restore
-def enablePrint():
-    sys.stdout = sys.__stdout__
-
-
 print("Start run_workflow.py")
 
 
@@ -44,20 +34,25 @@ def get_directories(files: List[str], subfolder_level: int = 0) -> List[str]:
         return get_directories(files, int(subfolder_level))
 
 
-def list_filter(elements: list, character: str) -> List[str]:
+def list_filter(elements: list, character: str, lowercase: bool = False) -> List[str]:
     """Function that filters a list from a criteria
 
     Args:
         elements (list): list of values to be filtered
         character (str): filter criteria
+        lowercase (bool): allow `str` comparison by converting to lowercase
 
     Returns:
         List[str]: list of filtered elements
     """
+    element_copy = elements.copy()
+    if lowercase:
+        elements = map(lambda x: x.lower(), elements)
+        character = character.lower()
     filter_elements = []
-    for element in elements:
+    for i, element in enumerate(elements):
         if element.find(character) != -1:
-            filter_elements.append(element)
+            filter_elements.append(element_copy[i])
     return filter_elements
 
 
@@ -168,7 +163,6 @@ if __name__ == "__main__":
     client_name = input("Insert client name : ")
     for dir in directories:
         print(f"Computing: {dir}")
-        # blockPrint()
         filter_files = list_filter(files, dir)
         controller.set_BlobPrefix(filter_files)
         df_list, name_list = controller.get_excel_csv(directory, "\w+.(xlsx|csv)", True)
@@ -177,9 +171,8 @@ if __name__ == "__main__":
         with open("./logs/" + dir + ".txt", "w") as outfile:
             for row in name_list:
                 outfile.write(row + "\n")
-        # enablePrint()
+
         for j, df in enumerate(df_list):
-            # blockPrint()
             df_list[j] = df_list[j].loc[:, ~df_list[j].columns.str.contains("^Unnamed")]
             df_list[j] = drop_empty_columns(df_list[j])
             column_handler = ColumnsCheck(df_list[j])
@@ -191,7 +184,7 @@ if __name__ == "__main__":
             df_list[j] = df_list[j].rename(columns=columns_to_rename)
             column_handler = ColumnsCheck(df_list[j])
             df_list[j] = column_handler._check_reserved_words()
-            # enablePrint()
+
             print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
             clearConsole()
         dfs, names, _ = merge_by_similarity(df_list, name_list, 9)
