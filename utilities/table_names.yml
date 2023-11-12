@@ -1,0 +1,12 @@
+# regular expression to rename a particular table
+regex_tb1 : TB_BI_table_name1
+regex_tb2 : TB_BI_table_name2
+# regular expression to access tables with similar names
+regex_for_tables : 
+# regular expression to distinguish a table from a set of similar tables
+  regex_for_stb1 : TB_BI_sub_table_name1
+  regex_for_stb2 : TB_BI_sub_table_name2
+  regex_for_stb3 : TB_BI_sub_table_name3
+  None : TB_BI_Default
+regex_tb3 : TB_BI_table_name3
+regex_tb4 : TB_BI_table_name4

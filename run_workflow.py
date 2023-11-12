@@ -11,9 +11,8 @@ from pydbsmgr.lightest import LightCleaner
 from pydbsmgr.utils.azure_sdk import StorageController
 from pydbsmgr.utils.tools import ColumnsCheck, ColumnsDtypes, erase_files, merge_by_coincidence
 
-from utilities.catalog import EventController
+from utilities.catalog import EventController, set_table_names
 from utilities.upload_to_sql import UploadToSQL
-
 
 print("Start run_workflow.py")
 
@@ -205,10 +204,7 @@ if __name__ == "__main__":
     print(tabulate(table_data, headers=["index", "names"], tablefmt="grid"))
     rename_tables = input("You want to rename the tables [y/n] : ")
     if rename_tables == "y":
-        for i, table_name in enumerate(table_names):
-            message = "insert the new name for the table {%s} : " % table_name
-            rename_table = input(message)
-            table_names[i] = rename_table
+        table_names = set_table_names(table_names)
     print("Starting the cleaning process...")
 
     for i, table in enumerate(tables):

@@ -3,8 +3,44 @@ import sys
 from typing import List
 
 import pandas as pd
+import yaml
 from pandas.core.frame import DataFrame
 from pydbsmgr.utils.azure_sdk import StorageController
+
+
+def set_table_names(
+    table_names: List[str],
+    default_name: bool = False,
+    file_path: str = "./utilities/table_names.yml",
+) -> List[str]:
+    """function that takes the default names for the tables in the file `table_names.yml`
+
+    Args:
+        table_names (List[`str`]): list of original names of the tables
+        default_name (`bool`): if `True`, the default name will be used when there is no match.
+        file_path (`str`): path where the catalog of tables is located
+
+    Returns:
+        List[`str`]: names changed to those written in the `.yml` file
+    """
+    with open(file_path, "r") as file:
+        yaml_table = yaml.safe_load(file)
+
+    keys_tables = [k.split()[0] for k in yaml_table.keys()]
+    for i, name in enumerate(table_names):
+        for key_name in keys_tables:
+            if name.find(key_name) != -1:
+                if type(yaml_table[key_name]) == str:
+                    table_names[i] = yaml_table[key_name]
+                else:
+                    sub_keys_tables = [k.split()[0] for k in yaml_table[key_name].keys()]
+                    sub_keys_tables.remove("None")
+                    for sub_key_name in sub_keys_tables:
+                        if name.find(sub_key_name) != -1:
+                            table_names[i] = yaml_table[key_name][sub_key_name]
+                        elif default_name:
+                            table_names[i] = yaml_table[key_name]["None"]
+    return table_names
 
 
 class EventController(StorageController):
