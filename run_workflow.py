@@ -17,7 +17,7 @@ from utilities.upload_to_sql import UploadToSQL
 print("Start run_workflow.py")
 
 
-def get_directories(files: List[str], subfolder_level: int = 0) -> List[str]:
+def get_directories(files: List[str], subfolder_level: int = 1) -> List[str]:
     """Get directories from list of files."""
     directories = set()
     for file in files:
@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
     project = input("Insert project name (first directory in the container) : ")
     controller = StorageController(conn_string, container_name)
-    files = controller.get_all_blob()
+    files = controller.get_all_blob(project)
     files = list_remove(files, exclude_files)
     # consult catalog
     manager = EventController(conn_string, container_name, project)
