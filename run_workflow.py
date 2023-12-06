@@ -22,7 +22,7 @@ def get_directories(files: List[str], subfolder_level: int = 1) -> List[str]:
     directories = set()
     for file in files:
         directories.add(file.split("/")[subfolder_level])
-    if len(directories) > 1:
+    if len(directories) >= 1:
         print("The directories could be successfully inferred.")
         return list(directories)
     else:
@@ -232,10 +232,10 @@ if __name__ == "__main__":
 
     del tables, dfs, df_list, controller  # The ram is released
 
-    files_processed = controller_processed.get_all_blob()
+    files_processed = controller_processed.get_all_blob(project)
     files_filtered = []
     for dir in directories:
-        files_filtered += list_filter(files_processed, dir)
+        files_filtered += list_filter(files_processed, dir, True)
     print("These are the tables that will be uploaded to SQL or will be updated :", files_filtered)
     # list of files to be read `.parquet`
     files_parquet = list_filter(files_filtered, ".parquet")
