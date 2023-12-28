@@ -3,7 +3,7 @@ import sys
 import uuid
 
 from azure.ai.ml import MLClient
-from azure.ai.ml.entities import ManagedOnlineDeployment, ManagedOnlineEndpoint
+from azure.ai.ml.entities import ManagedOnlineDeployment, ManagedOnlineEndpoint, Environment
 from azure.identity import DefaultAzureCredential
 from azureml.core import Model, Workspace
 
@@ -67,7 +67,19 @@ class UploadModelToML:
             f'Endpoint "{self.endpoint.name}" with provisioning state "{self.endpoint.provisioning_state}" is retrieved'
         )
 
-    def deploy_model(self, model_name: str = None) -> None:
+    def deploy_model(
+        self, environment: str | Environment | None = None, model_name: str = None, **kwargs
+    ) -> None:
+        """You can use an environment : `AzureML-sklearn-1.0-ubuntu20.04-py38-cpu:1`"""
+        image = (
+            kwargs["image"]
+            if "image" in kwargs
+            else "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest"
+        )
+        instance_type = kwargs["instance_type"] if "instance_type" in kwargs else "Standard_D2as_v4"
+        self.blue_deployment_name = (
+            kwargs["blue_deployment_name"] if "blue_deployment_name" in kwargs else "blue"
+        )
         # Choose the latest version of our registered model for deployment
         if model_name != None:
             self._model_name = model_name
@@ -75,21 +87,37 @@ class UploadModelToML:
             [int(m.version) for m in self.ml_client.models.list(name=self._model_name)]
         )
         model = self.ml_client.models.get(name=self._model_name, version=latest_model_version)
+        deployment_name = (
+            kwargs["deployment_name"] if "deployment_name" in kwargs else "deployment-environment"
+        )
+        if isinstance(environment, str):
+            if environment.find("AzureML") == -1:
+                env = Environment(
+                    conda_file=environment,
+                    image=image,
+                    name=deployment_name,
+                )
+                self.ml_client.environments.create_or_update(env)
+        else:
+            env = environment
 
         # Learn more on https://azure.microsoft.com/en-us/pricing/details/machine-learning/.
         blue_deployment = ManagedOnlineDeployment(
-            name="blue",
+            name=self.blue_deployment_name,
             endpoint_name=self.online_endpoint_name,
             model=model,
-            instance_type="Standard_D2as_v4",
+            environment=env,
+            instance_type=instance_type,
             instance_count=1,
         )
+
         # create the online deployment
         blue_deployment = self.ml_client.online_deployments.begin_create_or_update(
             blue_deployment
         ).result()
 
         # expect the deployment to take approximately 8 to 10 minutes.
+        # blue deployment takes 100% traffic
         self.endpoint.traffic = {"blue": 100}
         self.ml_client.online_endpoints.begin_create_or_update(self.endpoint).result()
         # return an object that contains metadata for the endpoint
@@ -100,12 +128,41 @@ class UploadModelToML:
             f"Name: {endpoint.name}\nStatus: {endpoint.provisioning_state}\nDescription: {endpoint.description}"
         )
 
+    def test_endpoint(
+        self,
+        request_file: str = "./models/input_example.json",
+        blue_deployment_name: str = None,
+        online_endpoint_name: str = "blue",
+    ):
+        if isinstance(blue_deployment_name, str):
+            self.blue_deployment_name = blue_deployment_name
+            self.online_endpoint_name = online_endpoint_name
+            credential = DefaultAzureCredential()
+
+            self.ml_client = MLClient(
+                credential=credential,
+                subscription_id=self._subscription_id,
+                resource_group_name=self._resource_group,
+                workspace_name=self._workspace_name,
+            )
+        self.ml_client.online_endpoints.invoke(
+            endpoint_name=self.online_endpoint_name,
+            deployment_name=self.blue_deployment_name,
+            request_file=request_file,
+        )
+        logs = self.ml_client.online_deployments.get_logs(
+            name=self.blue_deployment_name, endpoint_name=self.online_endpoint_name, lines=50
+        )
+        print(logs)
+
 
 if __name__ == "__main__":
     subscription_id = sys.argv[1]
     resource_group_name = sys.argv[2]
     workspace_name = sys.argv[3]
     model_name = sys.argv[4]
+    environment_path = sys.argv[5]
+    input_example = sys.argv[6]
 
     # Gets the absolute path of the .pkl model relative to the script
     model_path = os.path.join(os.path.dirname(__file__), model_name + ".pkl")
@@ -119,6 +176,9 @@ if __name__ == "__main__":
     azureml_controller.create_endpoint()
 
     print("Deploying the model...")
-    azureml_controller.deploy_model()
+    azureml_controller.deploy_model(environment_path)
 
     print("Model deployed successfully")
+
+    print("Testing the model deployment")
+    azureml_controller.test_endpoint(input_example)
