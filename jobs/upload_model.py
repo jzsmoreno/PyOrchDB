@@ -3,7 +3,12 @@ import sys
 import uuid
 
 from azure.ai.ml import MLClient
-from azure.ai.ml.entities import ManagedOnlineDeployment, ManagedOnlineEndpoint, Environment
+from azure.ai.ml.entities import (
+    CodeConfiguration,
+    Environment,
+    ManagedOnlineDeployment,
+    ManagedOnlineEndpoint,
+)
 from azure.identity import DefaultAzureCredential
 from azureml.core import Model, Workspace
 
@@ -68,7 +73,11 @@ class UploadModelToML:
         )
 
     def deploy_model(
-        self, environment: str | Environment | None = None, model_name: str = None, **kwargs
+        self,
+        environment: str | Environment | None = None,
+        model_name: str = None,
+        custom: bool = True,
+        **kwargs,
     ) -> None:
         """You can use an environment : `AzureML-sklearn-1.0-ubuntu20.04-py38-cpu:1`"""
         image = (
@@ -90,23 +99,22 @@ class UploadModelToML:
         deployment_name = (
             kwargs["deployment_name"] if "deployment_name" in kwargs else "deployment-environment"
         )
-        if isinstance(environment, str):
-            if environment.find("AzureML") == -1:
-                env = Environment(
+        if isinstance(environment, str) and custom:
+            if (environment.lower()).startswith("azureml") == -1 and environment.endswith(".pkl"):
+                environment = Environment(
                     conda_file=environment,
                     image=image,
                     name=deployment_name,
                 )
-                self.ml_client.environments.create_or_update(env)
-        else:
-            env = environment
+                self.ml_client.environments.create_or_update(environment)
 
         # Learn more on https://azure.microsoft.com/en-us/pricing/details/machine-learning/.
         blue_deployment = ManagedOnlineDeployment(
             name=self.blue_deployment_name,
             endpoint_name=self.online_endpoint_name,
             model=model,
-            environment=env,
+            environment=environment,
+            code_configuration=CodeConfiguration(code="./models", scoring_script="score.py"),
             instance_type=instance_type,
             instance_count=1,
         )
