@@ -100,7 +100,7 @@ class UploadModelToML:
             kwargs["deployment_name"] if "deployment_name" in kwargs else "deployment-environment"
         )
         if isinstance(environment, str) and custom:
-            if (environment.lower()).startswith("azureml") == -1 and environment.endswith(".pkl"):
+            if (environment.lower()).startswith("azureml") == -1 and environment.endswith(".yaml"):
                 environment = Environment(
                     conda_file=environment,
                     image=image,
