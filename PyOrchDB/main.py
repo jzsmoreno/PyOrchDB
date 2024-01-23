@@ -37,7 +37,6 @@ class ETLWorkflow:
         client_name: str = "",
         ODBC_DRIVER: int = 18,
     ):
-
         self.conn_string = conn_string
         self.container_name = container_name
         self.resource_group_name = resource_group_name
