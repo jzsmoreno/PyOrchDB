@@ -28,7 +28,7 @@ class UploadToSQL:
         frac: float = 0.01,
         chunk_size: int = 20,
         char_length: int = 256,
-        override_length: bool = False,
+        override_length: bool = True,
         pwd_verbose: bool = False,
     ):
         """Receives a list of the paths to the `.parquet` files to be uploaded to SQL"""

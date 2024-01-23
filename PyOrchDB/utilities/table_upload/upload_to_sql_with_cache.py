@@ -106,7 +106,7 @@ class UploadToSQL:
         retry_delay: int = 5,
         cache_file_path: str = "./logs/cache.pkl",
         char_length: int = 256,
-        override_length: bool = False,
+        override_length: bool = True,
         pwd_verbose: bool = False,
     ):
         """Receives a list of the paths to the `.parquet` files to be uploaded to SQL"""

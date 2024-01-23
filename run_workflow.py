@@ -28,5 +28,5 @@ if __name__ == "__main__":
     # Run the workflow with all its steps
     handler.build(dist_min=12, delete_catalog=True)
     handler.curate(fast_execution=False)
-    # handler.load()
-    # handler.upload()
+    handler.load()
+    handler.upload()

@@ -35,7 +35,7 @@ class ETLWorkflow:
         db_conn_string: str = "",
         db_conn_pwd: str = "your_password_here",
         client_name: str = "",
-        ODBC_DRIVER: int = 18,
+        ODBC_DRIVER: str = "18",
     ):
         self.conn_string = conn_string
         self.container_name = container_name
@@ -47,7 +47,7 @@ class ETLWorkflow:
         pattern_db = re.compile(r"\{(ODBC Driver \d{2} for SQL Server|SQL Server)\}")
         # Perform the substitution
         db_conn_string = pattern_db.sub(
-            f"ODBC Driver {ODBC_DRIVER} for SQL Server", db_conn_string[0]
+            "{ODBC Driver %s for SQL Server}" % ODBC_DRIVER, db_conn_string[0]
         )
         pattern_pwd = re.compile(r"\{your_password_here\}")
         db_conn_string = pattern_pwd.sub(db_conn_pwd, db_conn_string)
@@ -66,7 +66,7 @@ class ETLWorkflow:
         self,
         dist_min: int = 9,
         match_cols: int = 4,
-        drop_empty: bool = True,
+        drop_empty: bool = False,
         add_config: bool = False,
         delete_catalog: bool = False,
         **kwargs,
@@ -196,13 +196,18 @@ class ETLWorkflow:
     ) -> None:
         print("Uploading data to Azure SQL Database...\n")
         if with_cache:
-            from utilities.table_upload import UploadToSQL
+            from PyOrchDB.utilities.table_upload import UploadToSQL
         else:
-            from utilities.upload_to_sql import UploadToSQL
+            from PyOrchDB.utilities.upload_to_sql import UploadToSQL
+        try:
+            _ = self.directories[0]
+        except AttributeError:
+            self.set_directories()
         pwd_verbose = kwargs["pwd_verbose"] if "pwd_verbose" in kwargs else False
         if ram_usage == False and engine == "pyarrow":
             self.loader = StorageController(self.conn_string, container_name)
             files_processed = self.loader.get_all_blob(self.project)
+            files_filtered: list = []
             for dir in self.directories:
                 files_filtered += list_filter(files_processed, dir, True)
             print(
@@ -225,7 +230,7 @@ class ETLWorkflow:
         del cleaner
         return table
 
-    def fix(self, df: DataFrame) -> DataFrame:
+    def fix(self, df: DataFrame, drop_columns: bool = False) -> DataFrame:
         """Fix the dataframe according to predefined rules"""
         try:
             df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
@@ -236,7 +241,8 @@ class ETLWorkflow:
             msg += "Error: {%s}" % e
             print(f"{warning_type}: {msg}")
             return None
-        df = drop_empty_columns(df)
+        if drop_columns:
+            df = drop_empty_columns(df)
         column_handler = ColumnsCheck(df)
         df = column_handler.get_frame()
         df.columns = clean_transform(df.columns, False, remove_numeric=False)
