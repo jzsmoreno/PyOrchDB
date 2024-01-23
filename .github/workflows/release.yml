@@ -1,0 +1,28 @@
+name: "Gemfury private release python package"
+
+on:
+    push:
+      branches:
+        - 'main'
+        - 'feature/release'
+
+jobs:
+  build-and-publish-to-gemfury:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    env:
+        GEMFURY_PUSH_URL: ${{ secrets.GEMFURY_PUSH_URL }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+    
+    - name: Publish to Gemfury
+      shell: bash
+      run: |
+        chmod +x publish_package_to_gemfury.sh
+        ./publish_package_to_gemfury.sh .
+    
