@@ -25,15 +25,15 @@ setuptools.setup(
         "missingno",
         "pyodbc",
         "ipython",
-        "SQLAlchemy"
+        "SQLAlchemy",
         "pyyaml",
         "azure-storage-blob==12.16.0",
         "python-dotenv==1.0.0",
         "openpyxl==3.1.2",
         "pyarrow",
-        "fastparquet"
+        "fastparquet",
         "loguru",
-        "pydbsmgr"
+        "pydbsmgr",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
