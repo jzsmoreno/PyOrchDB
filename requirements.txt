@@ -13,5 +13,5 @@ openpyxl==3.1.2
 pyarrow
 fastparquet
 loguru
-git+https://github.com/jzsmoreno/pydbsmgr
+pydbsmgr
 git+https://github.com/jzsmoreno/merge_by_lev

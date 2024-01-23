@@ -1,4 +1,4 @@
-# orchestration-database [![Run linters](https://github.com/jzsmoreno/orchestration-database/actions/workflows/code-quality.yml/badge.svg)](https://github.com/jzsmoreno/orchestration-database/actions/workflows/code-quality.yml)
+# PyOrchDB [![Run linters](https://github.com/jzsmoreno/PyOrchDB/actions/workflows/code-quality.yml/badge.svg)](https://github.com/jzsmoreno/PyOrchDB/actions/workflows/code-quality.yml)
 A package for designing and implementing ETL. This repository intends to use the following infrastructure in [`Azure`](https://azure.microsoft.com/en-us), which has a _landing zone_ represented by a [`Storage account`](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview) where the data is located. This storage has 2 stages, the first one containing the _rawdata_ and the second one containing the _processed_ data in `.parquet` format to be uploaded to the [`SQL server database`](https://azure.microsoft.com/en-us/products/azure-sql/database/). The scheme of this solution is hybrid, having processes that run locally and processes that are managed to run using [`Azure ML`](https://azure.microsoft.com/en-us/products/machine-learning/). For a more detailed description, see below.   
 
 <p align="center">
@@ -14,16 +14,16 @@ A package for designing and implementing ETL. This repository intends to use the
 
 ### Docker container
 
-You can use [`Docker`](https://www.docker.com/) to run a stand-alone Linux container with [`Azure CLI`](https://learn.microsoft.com/en-us/cli/azure/) pre-installed.
+You can use [`Docker`](https://www.docker.com/) to run a stand-alone Linux container with [`Azure CLI`](https://learn.microsoft.com/en-us/cli/azure/) and [`Python3.10`](https://hub.docker.com/layers/library/python/3.10.13-slim-bookworm/images/sha256-9a97ede5d731252b42541a5d3ec60f6d4cd03747ca75315adc784ed864651c0e?context=explore) pre-installed.
 
 ```bash
-docker pull mcr.microsoft.com/azure-cli
+docker build -t your-image-name:tag .
 ```
 
 The [`Docker image`](https://hub.docker.com/_/microsoft-azure-cli) can be run using the following command:
 
 ```bash
-docker run -it mcr.microsoft.com/azure-cli
+docker run -it your-image-name:tag
 ```
 
 ### Windows
@@ -63,41 +63,37 @@ Here are the instructions to install [`Azure CLI`](https://learn.microsoft.com/e
 
 The project is structured as follows:
 
-    ├── jobs
-    │   ├── models
-    │   │   └── .gitignore
-    │   ├── README.md
-    │   ├── create-instance.yml
-    │   ├── experiment_job.yml
-    │   ├── job_workflow.py
-    │   ├── pipeline_job.yml
-    │   ├── requirements.txt
-    │   └── upload_model.py
-    ├── logs
-    │   ├── README.md
-    ├── templates
-    │   ├── README.md
-    │   ├── delete_all_resources.ps1
-    │   ├── run_template.ps1
-    │   └── template.json
-    ├── utilities
-    │   ├── table_upload
-    │   │   ├── __init__.py
-    │   │   └── upload_to_sql_with_cache.py
-    │   ├── __init__.py
-    │   ├── catalog.py
-    │   ├── config_data.yml
-    │   └── upload_to_sql.py
+    ├── PyOrchDB
+    ├── src
+	    ├── jobs
+	    │   ├── models
+	    │   │   └── .gitignore
+	    │   ├── create-instance.yml
+	    │   ├── create-serialized-model.ipynb
+	    │   ├── experiment_job.yml
+	    │   ├── job_workflow.py
+	    │   ├── pipeline_job.yml
+	    │   ├── README.md
+	    │   ├── requirements.txt
+	    │   └── upload_model.py
+	    ├── templates
+	    │   ├── README.md
+	    │   ├── delete_all_resources.ps1
+	    │   ├── run_template.ps1
+	    │   └── template.json
+	    ├── config.yml
+	    ├── Dockerfile
+	    ├── pipeline.py
+	    └── run.ps1
     ├── .gitignore
     ├── .pre-commit-config.yaml
+    ├── diagram.png
+    ├── Dockerfile
     ├── LICENSE
     ├── README.md
-    ├── config.yml
-    ├── diagram.png
-    ├── pipeline.py
     ├── requirements.txt
-    ├── run.ps1
-    └── run_workflow.py
+    ├── run_workflow.py
+    └── setup.py
 
 ## ETL creation and execution
 

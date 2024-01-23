@@ -106,13 +106,15 @@ class UploadToSQL:
         retry_delay: int = 5,
         cache_file_path: str = "./logs/cache.pkl",
         char_length: int = 256,
-        override_length: bool = False,
+        override_length: bool = True,
+        pwd_verbose: bool = False,
     ):
         """Receives a list of the paths to the `.parquet` files to be uploaded to SQL"""
-        username = input("Enter the database user : ")
-        password = input("Enter the database password : ")
-        db_conn_string = db_conn_string.replace("<username>", username)
-        db_conn_string = db_conn_string.replace("<password>", password)
+        if pwd_verbose:
+            username = input("Enter the database user : ")
+            password = input("Enter the database password : ")
+            db_conn_string = db_conn_string.replace("<username>", username)
+            db_conn_string = db_conn_string.replace("<password>", password)
         print(db_conn_string)
         for file in files:
             exist_table = None

@@ -5,6 +5,7 @@ from typing import List
 import pandas as pd
 import yaml
 from pandas.core.frame import DataFrame
+from pandas.errors import EmptyDataError
 from pydbsmgr.utils.azure_sdk import StorageController
 
 
@@ -49,18 +50,24 @@ class EventController(StorageController):
         self.cat_ = pd.DataFrame()
         self.directory = directory
 
-    def create_log(self, files: List[str], overwrite: bool = False) -> None:
+    def create_log(
+        self, files: List[str], overwrite: bool = False, delete_catalog: bool = False
+    ) -> None:
         events = pd.DataFrame()
         events["files"] = files
         events["datetime"] = datetime.datetime.now()
+        if delete_catalog:
+            overwrite = True
         super().upload_excel_csv(self.directory, [events], ["catalog"], overwrite=overwrite)
 
-    def audit(self) -> DataFrame:
-        self.cat_, _ = super().get_excel_csv(self.directory, "catalog.csv")
+    def audit(self) -> DataFrame | None:
+        try:
+            self.cat_, _ = super().get_excel_csv(self.directory, "catalog.csv")
+        except EmptyDataError:
+            return None
         if len(self.cat_) > 0:
             return self.cat_[0]
-        else:
-            return None
+        return None
 
     def remove(self, files_not_loaded: List[str]) -> None:
         self.cat_, _ = super().get_excel_csv(self.directory, "catalog.csv")
