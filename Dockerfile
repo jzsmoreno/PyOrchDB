@@ -1,11 +1,5 @@
-# Image with Azure CLI pre-installed
-FROM mcr.microsoft.com/azure-cli:latest AS azcli
-
 # Use a Python 3.10.13 slim image based on Debian bookworm as the base image
 FROM python:3.10.13-slim-bookworm
-
-# Copy Azure CLI installation from the first stage
-COPY --from=azcli /usr/local/lib/az /usr/local/lib/az
 
 # Set the working directory in the Docker container
 WORKDIR /home/app/
@@ -17,6 +11,8 @@ RUN apt-get update \
         curl \
         jq \
         && rm -rf /var/lib/apt/lists/*
+
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
 
 # Install necessary tools and add Microsoft's public key for package verification
 RUN apt-get update && apt-get install -y \
@@ -36,8 +32,6 @@ RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17
 # Install additional dependencies
 RUN apt-get install -y g++ unixodbc-dev unixodbc
 
-# Set up the Azure CLI environment variables
-ENV PATH="/usr/local/lib/az/bin:${PATH}"
 ENV SHELL=/bin/bash
 
 # Copy requirements.txt to the docker image and install Python packages
@@ -48,13 +42,11 @@ RUN pip3 install --upgrade pip && \
 
 # Extra to debug but not necessary
 RUN pip3 install --no-cache-dir jupyterlab
+RUN pip3 install --no-cache-dir streamlit
 EXPOSE 8888
 
 # Expose port 8888 for Jupyter Notebook
 EXPOSE 8501
 
-# Copy your Python application files into the container
-COPY . .
-
 # Set a default command (modify as needed)
-CMD ["bash"]
+# CMD ["bash"]
