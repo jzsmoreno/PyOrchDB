@@ -199,15 +199,15 @@ class ETLWorkflow:
             from PyOrchDB.utilities.table_upload import UploadToSQL
         else:
             from PyOrchDB.utilities.upload_to_sql import UploadToSQL
-        try:
-            _ = self.directories[0]
-        except AttributeError:
-            self.set_directories()
         pwd_verbose = kwargs["pwd_verbose"] if "pwd_verbose" in kwargs else False
         if ram_usage == False and engine == "pyarrow":
             self.loader = StorageController(self.conn_string, container_name)
             files_processed = self.loader.get_all_blob(self.project)
             files_filtered: list = []
+            try:
+                _ = self.directories[0]
+            except AttributeError:
+                self.set_directories(files_processed)
             for dir in self.directories:
                 files_filtered += list_filter(files_processed, dir, True)
             print(
