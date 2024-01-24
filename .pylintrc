@@ -1,0 +1,9 @@
+[MASTER]
+init-hook="from pylint.config import find_pylintrc; import os, sys; sys.path.append(os.path.dirname(find_pylintrc()))"
+disable=
+    C0103, # uppercase naming style.
+		W2402, # name of files with emojis.
+		C0114, # missing module docstring.
+		R0903, # too few public methods.
+		R0913, # too many arguments in a function.
+		R0902, # too many instance attributes.

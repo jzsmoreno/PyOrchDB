@@ -1,6 +1,6 @@
 import os
-import sys
 from abc import abstractmethod
+import re
 
 import yaml
 from merge_by_lev import *
@@ -33,9 +33,7 @@ class ETLWorkflow:
         exclude_files: str = "catalog",
         directory: str = "/",
         db_conn_string: str = "",
-        db_conn_pwd: str = "your_password_here",
         client_name: str = "",
-        ODBC_DRIVER: str = "18",
     ):
         self.conn_string = conn_string
         self.container_name = container_name
@@ -43,14 +41,6 @@ class ETLWorkflow:
         self.storage_name = conn_string.split(";")[1].split("=")[1]
         self.exclude_files = exclude_files
         self.directory = directory
-        # Define the regular expression pattern
-        pattern_db = re.compile(r"\{(ODBC Driver \d{2} for SQL Server|SQL Server)\}")
-        # Perform the substitution
-        db_conn_string = pattern_db.sub(
-            "{ODBC Driver %s for SQL Server}" % ODBC_DRIVER, db_conn_string[0]
-        )
-        pattern_pwd = re.compile(r"\{your_password_here\}")
-        db_conn_string = pattern_pwd.sub(db_conn_pwd, db_conn_string)
         self.db_conn_string = db_conn_string
         self.project = project_name
 
@@ -116,7 +106,11 @@ class ETLWorkflow:
             df_list, name_list = self._remove_errors(errors, df_list, name_list)
             # A concatenation is performed according to the similarity of the databases
             dfs, names, _ = merge_by_similarity(
-                df_list, name_list, dist_min=dist_min, match_cols=match_cols, drop_empty=drop_empty
+                df_list,
+                name_list,
+                dist_min=dist_min,
+                match_cols=match_cols,
+                drop_empty=drop_empty,
             )
             # Update the list of table names
             self._name_settings(names, dir)
@@ -124,17 +118,21 @@ class ETLWorkflow:
         del dfs, df_list, column_handler
 
     def curate(
-        self, rename_manually: bool = True, cleaning: bool = True, engine: str = "pyarrow", **kwargs
+        self,
+        rename_manually: bool = True,
+        cleaning: bool = True,
+        engine: str = "pyarrow",
+        rename_tables="y",
+        **kwargs,
     ) -> List[Table] | List[DataFrame]:
         self.engine = engine
         """Processes the created database to load it into the Azure SQL database."""
         print("The names of the tables to be processed are as follows :")
         print(tabulate(self.table_data, headers=["index", "names"], tablefmt="grid"))
-        rename_tables = input("You want to rename the tables [y/n] :")
         write_to_cloud = kwargs["write_to_cloud"] if "write_to_cloud" in kwargs else False
         if rename_tables == "y":
             if not rename_manually:
-                self.table_names = set_table_names(self.table_names)
+                self.table_names = set_table_names(self.table_names, file_path="./table_names.yml")
             else:
                 for i, table_name in enumerate(self.table_names):
                     message = "insert the new name for the table {%s} : " % table_name

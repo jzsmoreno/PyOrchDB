@@ -115,7 +115,6 @@ class UploadToSQL:
             password = input("Enter the database password : ")
             db_conn_string = db_conn_string.replace("<username>", username)
             db_conn_string = db_conn_string.replace("<password>", password)
-        print(db_conn_string)
         for file in files:
             exist_table = None
             df, file_name = self.controller.get_parquet(directory, file)
