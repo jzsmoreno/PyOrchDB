@@ -46,8 +46,10 @@ class ETLWorkflow:
         # Define the regular expression pattern
         pattern_db = re.compile(r"\{(ODBC Driver \d{2} for SQL Server|SQL Server)\}")
         # Perform the substitution
+        if isinstance(db_conn_string, list):
+            db_conn_string = db_conn_string[0]
         db_conn_string = pattern_db.sub(
-            "{ODBC Driver %s for SQL Server}" % ODBC_DRIVER, db_conn_string[0]
+            "{ODBC Driver %s for SQL Server}" % ODBC_DRIVER, db_conn_string
         )
         pattern_pwd = re.compile(r"\{your_password_here\}")
         db_conn_string = pattern_pwd.sub(db_conn_pwd, db_conn_string)
