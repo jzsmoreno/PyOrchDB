@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="PyOrchDB",
-    version="0.0.1",
+    version="0.0.2",
     author="J. A. Moreno-Guerra",
     author_email="jzs.gm27@gmail.com",
     maintainer="David Pedroza",

@@ -74,9 +74,9 @@ class ETLWorkflow:
         """Building a data pipeline by downloading files from Azure Blob storage and creating tables"""
         print("\nStart building process...\n")
         files = self._get_file_list(**kwargs)
-        self._update_catalog(files, delete_catalog)
+        files = self._update_catalog(files, delete_catalog)
         # Get all directories
-        self.set_directories(**kwargs)
+        self.set_directories(files)
         self.add_config = add_config
         if self.add_config:
             self._load_config()
@@ -249,10 +249,9 @@ class ETLWorkflow:
         df.columns = df.columns.str.replace("__", "_")
         return df
 
-    def set_directories(self, **kwargs) -> List[str]:
+    def set_directories(self, files: List[str]) -> List[str]:
         """Inspects all directories and returns a list of names"""
-        files = self._get_file_list(**kwargs)
-        self.directories = self._read_root(files)
+        self.directories = sorted(self._read_root(files))
         print("The directories are as follows : ")
         print(self.directories)
         return self.directories
@@ -322,6 +321,7 @@ class ETLWorkflow:
         else:
             files = self.manager.diff(files)
             self.manager.update(files)
+        return files
 
     def _remove_from_catalog(self, files_not_loaded) -> None:
         # Remove from catalog any files that could not be processed
