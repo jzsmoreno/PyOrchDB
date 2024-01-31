@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 from abc import abstractmethod
 
 import yaml
@@ -71,12 +72,20 @@ class ETLWorkflow:
         drop_empty: bool = False,
         add_config: bool = False,
         delete_catalog: bool = False,
+        update_catalog: bool = True,
         **kwargs,
     ) -> None:
         """Building a data pipeline by downloading files from Azure Blob storage and creating tables"""
         print("\nStart building process...\n")
         files = self._get_file_list(**kwargs)
-        files = self._update_catalog(files, delete_catalog)
+        if update_catalog:
+            files = self._update_catalog(files, delete_catalog)
+        else:
+            if delete_catalog:
+                warnings.warn(
+                    "delete_catalog=True ignored because update_catalog=False", UserWarning
+                )
+            files = self.manager.diff(files)
         # Get all directories
         self.set_directories(files)
         self.add_config = add_config
