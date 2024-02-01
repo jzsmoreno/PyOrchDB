@@ -4,7 +4,6 @@ import re
 import time
 from typing import List, Tuple
 
-import numba
 import numpy as np
 import pandas as pd
 import pyodbc
@@ -49,7 +48,6 @@ def save_cache(file_path: str, data: set) -> None:
         pickle.dump(data, file)
 
 
-@numba.jit
 def add_cache(cache: set, data_set: set) -> set:
     """Update cache with new information.
 

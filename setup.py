@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="PyOrchDB",
-    version="0.0.6",
+    version="0.0.7",
     author="J. A. Moreno-Guerra",
     author_email="jzs.gm27@gmail.com",
     maintainer="David Pedroza",
@@ -18,7 +18,6 @@ setuptools.setup(
     license="BSD 3-Clause",
     packages=setuptools.find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     install_requires=[
-        "numba",
         "numpy<2.0.0",
         "pandas",
         "clean-text",
