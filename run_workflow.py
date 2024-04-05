@@ -7,16 +7,14 @@ if __name__ == "__main__":
     storage_name = sys.argv[1]
     conn_string = sys.argv[2]
     container_name = sys.argv[3]
-    resource_group_name = sys.argv[4]
-    exclude_files = sys.argv[5]
-    directory = sys.argv[6]
-    db_conn_string = sys.argv[7:]
+    exclude_files = sys.argv[4]
+    directory = sys.argv[5]
+    db_conn_string = sys.argv[6:]
 
     project_name = input("Insert project name (first directory in the container) : ")
     db_conn_pwd = input("Insert your database password : ")
 
     handler = ETLWorkflow(
-        resource_group_name,
         conn_string,
         container_name,
         project_name,

@@ -1,11 +1,28 @@
+from pathlib import Path
+
 import setuptools
+from pip._internal.req import parse_requirements
+
+# Parse the requirements.txt file
+requirements = parse_requirements("requirements.txt", session="hack")
+
+# Get the list of requirements as strings
+install_requires = [str(req.requirement) for req in requirements]
+install_requires = install_requires[:-1]  # Remove "--find-links" line
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+about = {}
+ROOT_DIR = Path(__file__).resolve().parent
+PACKAGE_DIR = ROOT_DIR / "PyOrchDB"
+with open(PACKAGE_DIR / "VERSION") as f:
+    _version = f.read().strip()
+    about["__version__"] = _version
+
 setuptools.setup(
     name="PyOrchDB",
-    version="0.0.7",
+    version=about["__version__"],
     author="J. A. Moreno-Guerra",
     author_email="jzs.gm27@gmail.com",
     maintainer="David Pedroza",
@@ -17,24 +34,7 @@ setuptools.setup(
     project_urls={"Bug Tracker": "https://github.com/jzsmoreno/PyOrchDB/issues"},
     license="BSD 3-Clause",
     packages=setuptools.find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
-    install_requires=[
-        "numpy<2.0.0",
-        "pandas",
-        "clean-text",
-        "missingno",
-        "pyodbc",
-        "ipython",
-        "SQLAlchemy",
-        "pyyaml",
-        "azure-storage-blob==12.16.0",
-        "python-dotenv==1.0.0",
-        "openpyxl==3.1.2",
-        "pyarrow",
-        "fastparquet",
-        "loguru",
-        "pydbsmgr",
-        "Unidecode",
-    ],
+    install_requires=install_requires,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",

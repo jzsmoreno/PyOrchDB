@@ -2,6 +2,7 @@ import os
 import sys
 import warnings
 from abc import abstractmethod
+from re import Pattern
 
 import yaml
 from merge_by_lev import *
@@ -27,7 +28,6 @@ from PyOrchDB.utilities import (
 class ETLWorkflow:
     def __init__(
         self,
-        resource_group_name: str,
         conn_string: str,
         container_name: str,
         project_name: str = "",
@@ -37,15 +37,18 @@ class ETLWorkflow:
         db_conn_pwd: str = "your_password_here",
         client_name: str = "",
         ODBC_DRIVER: str = "18",
+        verbose: bool = True,
     ):
         self.conn_string = conn_string
         self.container_name = container_name
-        self.resource_group_name = resource_group_name
         self.storage_name = conn_string.split(";")[1].split("=")[1]
         self.exclude_files = exclude_files
         self.directory = directory
+        self.verbose = verbose
         # Define the regular expression pattern
         pattern_db = re.compile(r"\{(ODBC Driver \d{2} for SQL Server|SQL Server)\}")
+        # Validating input parameters
+        self.validate_input_parameters(pattern_db, db_conn_string)
         # Perform the substitution
         if isinstance(db_conn_string, list):
             db_conn_string = db_conn_string[0]
@@ -64,6 +67,27 @@ class ETLWorkflow:
         self.table_data: list = []
         self.table_names: list = []
         self.client_name = client_name
+
+    def validate_input_parameters(self, pattern_db: Pattern, db_conn_string: str) -> None:
+        """Check if input parameters are valid"""
+
+        # Checks with regex if the connection strings are valid
+        if not self.conn_string.startswith("DefaultEndpointsProtocol=https;AccountName="):
+            raise ValueError(
+                "Storage account connection string is invalid!, please provide valid string."
+            )
+
+        if len(db_conn_string) == 0:
+            warning_type = "UserWarning"
+            msg = "A database connection string was not provided."
+            print(f"{warning_type}: {msg}")
+        elif not pattern_db.search(db_conn_string):
+            raise ValueError("Invalid database connection string!, please provide valid string.")
+
+        if self.verbose:
+            print(
+                f"Valid input parameters!, database connection string : {len(db_conn_string) != 0}"
+            )
 
     def build(
         self,
@@ -295,7 +319,7 @@ class ETLWorkflow:
 
     def _load_config(self, yaml_path: str = "./utilities/config_data.yml") -> None:
         try:
-            with open(yaml_data, "r") as file:
+            with open(yaml_path, "r") as file:
                 yaml_data = yaml.safe_load(file)
             self.yaml_data = yaml_data
         except:

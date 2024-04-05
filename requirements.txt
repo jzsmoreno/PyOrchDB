@@ -1,5 +1,4 @@
-numba
-numpy
+numpy<2.0.0
 pandas
 clean-text
 missingno
@@ -14,5 +13,5 @@ pyarrow
 fastparquet
 loguru
 pydbsmgr
-git+https://github.com/jzsmoreno/merge_by_lev
 Unidecode
+git+https://github.com/jzsmoreno/merge_by_lev
