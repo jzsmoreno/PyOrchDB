@@ -102,7 +102,8 @@ The project is structured as follows:
     This considers that the infrastructure is not deployed, so the following command lines will be executed:
 
     ```powershell
-    .\templates\run_template.ps1
+    .\src\templates\run_template.ps1
+    cd src
     Start-Process python pipeline.py -NoNewWindow -Wait
     ```
 
@@ -132,7 +133,7 @@ The project is structured as follows:
     The user must replace fields such as `<resource_group_name>`, `<storage_account_name>` and `<container_name>` with the corresponding values. The execution of `run_workflow.py` requires a specialized environment, so as intermediate steps it will be necessary to create and activate such an environment with the necessary requirements before executing the last command line.
 
     ```powershell
-    Start-Process python -ArgumentList './run_workflow.py', $storage_account_name, $storageBlob_conn, $container_name, $resource_group_name, '<exclude_files>', '/', $db_conn_string -NoNewWindow -Wait
+    Start-Process python -ArgumentList './run_workflow.py', $storageBlob_conn, $container_name, '<exclude_files>', '/', $db_conn_string -NoNewWindow -Wait
     ```
 
 * ### Scenario 3
@@ -140,6 +141,7 @@ The project is structured as follows:
     In this scenario, you have the resource group created and within it is the [`Storage account`](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview) that contains the data. In this case you will have to check the `config.yml` file and verify that everything is correct. Subsequently the following lines of code will be executed:
 
     ```powershell
+    cd src
     Start-Process python pipeline.py -NoNewWindow -Wait
     .\run.ps1
     ```
