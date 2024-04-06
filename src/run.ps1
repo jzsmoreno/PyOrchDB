@@ -39,7 +39,7 @@ az ml compute create -g test -w testazml -f ./jobs/create-instance.yml
 echo 'Extraction and transformation. Running...'
 $storageBlob_conn = (az storage account show-connection-string --name testsa --resource-group test --query 'connectionString' --output tsv)
 $db_conn_string = (az sql db show-connection-string -c odbc -n testdbsrv01 -s gentestsrv01 -a Sqlpassword --output tsv)
-Start-Process python -ArgumentList './run_workflow.py', 'testsa', $storageBlob_conn, 'rawdata', 'test', 'catalog', '/', $db_conn_string -NoNewWindow -Wait
+Start-Process python -ArgumentList './run_workflow.py' $storageBlob_conn, 'rawdata', 'catalog', '/', $db_conn_string -NoNewWindow -Wait
 $storageName = (az ml datastore list --query '[0].{storageName:account_name}' --output table --workspace-name testazml --resource-group test)[2]
 $storageKey = (az storage account keys list --resource-group test --account-name $storageName --query '[0].value' --output tsv)
 az storage blob upload --account-name $storageName --account-key $storageKey --container-name azureml --file ./jobs/job_workflow.py --name job_workflow.py --overwrite

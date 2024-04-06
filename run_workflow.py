@@ -4,12 +4,11 @@ from PyOrchDB.main import ETLWorkflow
 
 if __name__ == "__main__":
     print("Start run_workflow.py")
-    storage_name = sys.argv[1]
-    conn_string = sys.argv[2]
-    container_name = sys.argv[3]
-    exclude_files = sys.argv[4]
-    directory = sys.argv[5]
-    db_conn_string = sys.argv[6:]
+    conn_string = sys.argv[1]
+    container_name = sys.argv[2]
+    exclude_files = sys.argv[3]
+    directory = sys.argv[4]
+    db_conn_string = sys.argv[5:]
 
     project_name = input("Insert project name (first directory in the container) : ")
     db_conn_pwd = input("Insert your database password : ")
