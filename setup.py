@@ -1,13 +1,11 @@
 from pathlib import Path
 
 import setuptools
-from pip._internal.req import parse_requirements
 
 # Parse the requirements.txt file
-requirements = parse_requirements("requirements.txt", session="hack")
+with open("requirements.txt", "r") as f:
+    install_requires = f.read().splitlines()
 
-# Get the list of requirements as strings
-install_requires = [str(req.requirement) for req in requirements]
 install_requires = install_requires[:-1]  # Remove "--find-links" line
 
 with open("README.md", "r", encoding="utf-8") as fh:
