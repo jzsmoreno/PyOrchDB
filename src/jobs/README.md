@@ -25,4 +25,10 @@ $input_example = 'models/<input_example.json>'
 Start-Process python -ArgumentList './upload_model.py', $subscription_id, $resource_group_name, $workspace_name, $model_name, $environment_path, $input_example -NoNewWindow -Wait
 ```
 
-This will create an endpoint to consume the model.
+This will create an endpoint to consume the model. 
+
+# Local Azure Machine Learning Job
+
+## Create a data asset
+
+

@@ -173,21 +173,18 @@ class ETLWorkflow:
         for i, _ in enumerate(self.tables):
             if not isinstance(self.tables[i], DataFrame):
                 self.tables[i] = self.tables[i].to_frame().reset_index()
-            if (
-                self.table_names[i].find("Encuesta") != -1
-                or self.table_names[i].find("Survey") != -1
-            ):
-                column_handler = StandardColumns(self.tables[i])
-                self.tables[i] = column_handler.get_frame(
-                    self.table_names[i] + ".json",
-                    write_to_cloud,
-                    self.conn_string,
-                    self.container_name,
-                    snake_case=snake_case,
-                    sort=sort,
-                    surrounding=surrounding,
-                )
-                del column_handler
+
+            column_handler = StandardColumns(self.tables[i])
+            self.tables[i] = column_handler.get_frame(
+                self.table_names[i] + ".json",
+                write_to_cloud,
+                self.conn_string,
+                self.container_name,
+                snake_case=snake_case,
+                sort=sort,
+                surrounding=surrounding,
+            )
+            del column_handler
             if cleaning:
                 print(f"Starting the cleaning process of {self.table_names[i]}")
                 self.tables[i] = self.clean_db(self.tables[i], **kwargs)
