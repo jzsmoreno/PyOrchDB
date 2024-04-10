@@ -29,6 +29,45 @@ This will create an endpoint to consume the model.
 
 # Local Azure Machine Learning Job
 
-## Create a data asset
+## Create a URL folder data asset
 
+The supported paths you can use when creating a URI file data asset are:
 
+- Local: A relative path from the source directory of the project that contains your local data folder (`source_directory`). For example, `./data/`
+- Azure Blob Storage: `wasbs://<account_name>.blob.core.windows.net/<container_name>/<folder>/<file>`
+- Azure Data Lake Storage (Gen 2): `abfss://<file_system>@<account_name>.dfs.core.windows.net/<folder>/<file>`
+- Datastore: `azureml://datastores/<datastore_name>/paths/<folder>/<file>`
+
+To create a URI file data asset, you can use the following code:
+
+```python
+from azure.ai.ml.entities import Data
+from azure.ai.ml.constants import AssetTypes
+
+my_path = '<supported-path>'
+
+my_data = Data(
+    path=my_path,
+    type=AssetTypes.URI_FILE,
+    description="<description>",
+    name="<name>",
+    version="<version>"
+)
+
+ml_client.data.create_or_update(my_data)
+```
+
+## Create a compute instance
+
+You need a compute target to run your script in. If you don't have one already, you can create a new compute instance using this
+
+```python
+from azure.ai.ml.entities import ComputeInstance
+
+ci_basic_name = "basic-ci-12345"
+ci_basic = ComputeInstance(
+    name=ci_basic_name, 
+    size="STANDARD_DS3_v2"
+)
+ml_client.begin_create_or_update(ci_basic).result()
+```

@@ -5,10 +5,10 @@ if ($mode.Contains("y"))
     $resource_group_name = 'test'
     $location_name = 'eastus'
     if (((Get-Location).Path).Contains("templates")){
-        $template_file = 'template.json'
+        $template_file = 'infra_template.json'
     }
     else{
-        $template_file = './templates/template.json'
+        $template_file = './templates/infra_template.json'
     }
     $storage_account_name = 'testsablob01'
     $sql_server_name = 'gentestsrv01'
@@ -40,10 +40,10 @@ else{
     else{
         Write-Output 'Invalid entry : Using default value'
         if (((Get-Location).Path).Contains("templates")){
-            $template_file = 'template.json'
+            $template_file = 'infra_template.json'
         }
         else{
-            $template_file = './templates/template.json'
+            $template_file = './templates/infra_template.json'
         }
     }
     $storage_account_name = read-host "Enter storage account name (example: testsablob01)"
