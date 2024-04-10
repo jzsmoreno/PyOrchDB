@@ -119,14 +119,9 @@ class ETLWorkflow:
             print(f"Processing {dir}")
             filter_files = list_filter(files, dir)
             self.controller.set_BlobPrefix(filter_files)
-            try:
-                df_list, name_list = self.controller.get_excel_csv(
-                    self.directory, "\w+.(xlsx|csv)", True
-                )
-            except UnicodeDecodeError:
-                df_list, name_list = self.controller.get_excel_csv(
-                    self.directory, "\w+.(xlsx|csv)", True, encoding="latin-1"
-                )
+            df_list, name_list = self.controller.get_excel_csv(
+                self.directory, "\w+.(xlsx|csv)", True
+            )
             df_list, name_list = check_empty_df(df_list, name_list)
             # Create the necessary logs
             self._update_logs(dir, name_list)
@@ -142,9 +137,6 @@ class ETLWorkflow:
                 df_list[j] = insert_period(df_list[j], name_list[j])
                 # Additional operations on columns
                 df_list[j] = self._ops_cols(df_list[j])
-                # Supplemental verification
-                column_handler = ColumnsCheck(df_list[j])
-                df_list[j] = column_handler._check_reserved_words()
                 # Progress is shown
                 print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
                 clearConsole()
@@ -156,7 +148,7 @@ class ETLWorkflow:
             # Update the list of table names
             self._name_settings(names, dir)
             self.tables += dfs
-        del dfs, df_list, column_handler
+        del dfs, df_list
 
     def curate(
         self, rename_manually: bool = True, cleaning: bool = True, engine: str = "pyarrow", **kwargs
@@ -167,6 +159,9 @@ class ETLWorkflow:
         print(tabulate(self.table_data, headers=["index", "names"], tablefmt="grid"))
         rename_tables = input("You want to rename the tables [y/n] :")
         write_to_cloud = kwargs["write_to_cloud"] if "write_to_cloud" in kwargs else False
+        snake_case = kwargs["snake_case"] if "snake_case" in kwargs else True
+        sort = kwargs["sort"] if "sort" in kwargs else False
+        surrounding = kwargs["surrounding"] if "surrounding" in kwargs else True
         if rename_tables == "y":
             if not rename_manually:
                 self.table_names = set_table_names(self.table_names)
@@ -188,6 +183,9 @@ class ETLWorkflow:
                     write_to_cloud,
                     self.conn_string,
                     self.container_name,
+                    snake_case=snake_case,
+                    sort=sort,
+                    surrounding=surrounding,
                 )
                 del column_handler
             if cleaning:
@@ -280,8 +278,6 @@ class ETLWorkflow:
             df = drop_empty_columns(df)
         column_handler = ColumnsCheck(df)
         df = column_handler.get_frame()
-        df.columns = clean_transform(df.columns, False, remove_numeric=False)
-        df.columns = df.columns.str.replace("__", "_")
         return df
 
     def set_directories(self, files: List[str]) -> List[str]:
