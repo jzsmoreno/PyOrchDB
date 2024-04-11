@@ -72,15 +72,12 @@ The project is structured as follows:
 	    │   ├── create-serialized-model.ipynb
 	    │   ├── experiment_job.yml
 	    │   ├── job_workflow.py
+        |   ├── ml_complete_job.py
 	    │   ├── pipeline_job.yml
 	    │   ├── README.md
 	    │   ├── requirements.txt
 	    │   └── upload_model.py
 	    ├── templates
-	    │   ├── README.md
-	    │   ├── delete_all_resources.ps1
-	    │   ├── run_template_infra.ps1
-	    │   └── infra_template.json
 	    ├── config.yml
 	    ├── Dockerfile
 	    ├── pipeline.py
