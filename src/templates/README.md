@@ -1,11 +1,11 @@
 # Azure Resource Manager template
-This folder contains the templates for deploying the infrastructure in Azure using [`Azure CLI`](https://learn.microsoft.com/en-us/cli/azure/). Here in `run_template.ps1` you can see the syntax of the command.
+This folder contains the templates for deploying the infrastructure in Azure using [`Azure CLI`](https://learn.microsoft.com/en-us/cli/azure/). Here in `run_template_infra.ps1` you can see the syntax of the command.
 
 ## Deployment
 
-The creation of the infrastructure in `template.json` can be easily created by executing the following command:
+The creation of the infrastructure in `infra_template.json` can be easily created by executing the following command:
 ```powershell
-.\run_template.ps1
+.\run_template_infra.ps1
 ```
 
 ## Delete all resources in the resource group
