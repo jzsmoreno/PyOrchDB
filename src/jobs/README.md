@@ -41,10 +41,9 @@ The supported paths you can use when creating a URI file data asset are:
 To create a URI file data asset, you can use the following code:
 
 ```python
-from azure.ai.ml import MLClient
+from azure.ai.ml import MLClient, command
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.entities import AmlCompute, ComputeInstance, Data
-from azure.ai.ml.sweep import Normal
 from azure.identity import DefaultAzureCredential
 
 # authenticate

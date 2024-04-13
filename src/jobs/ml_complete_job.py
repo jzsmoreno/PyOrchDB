@@ -1,6 +1,7 @@
 from azure.ai.ml import MLClient, command
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.entities import AmlCompute, ComputeInstance, Data
+from azure.ai.ml.sweep import Normal
 from azure.identity import DefaultAzureCredential
 
 # authenticate
@@ -27,7 +28,7 @@ my_data = Data(
 ml_client.data.create_or_update(my_data)
 
 
-ci_basic_name = "basic-ci-12345"
+ci_basic_name = "basic-ci"
 ci_basic = ComputeInstance(name=ci_basic_name, size="STANDARD_DS3_v2")
 ml_client.begin_create_or_update(ci_basic).result()
 
@@ -51,7 +52,7 @@ job = command(
     environment="AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest",
     compute="cpu-cluster",
     display_name="train-with-cluster",
-    experiment_name="diabetes-training",
+    experiment_name="training",
 )
 
 # submit job
