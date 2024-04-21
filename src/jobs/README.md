@@ -29,7 +29,7 @@ This will create an endpoint to consume the model.
 
 # Local Azure Machine Learning Job
 
-## Create a URL folder data asset
+## Create a URI folder data asset
 
 The supported paths you can use when creating a URI file data asset are:
 
@@ -120,7 +120,7 @@ returned_job = ml_client.create_or_update(job)
 aml_url = returned_job.studio_url
 print("Monitor your job at", aml_url)
 ```
-
+you can also see the [`Pipeline documentation`](https://learn.microsoft.com/es-es/training/modules/run-pipelines-azure-machine-learning/3-create-pipeline) for more details.
 ## Configure and run a sweep job
 
 To prepare the sweep job, you must first create a base command job. 
@@ -158,4 +158,26 @@ sweep_job.set_limits(max_total_trials=4, max_concurrent_trials=2, timeout=7200)
 # submit the sweep
 returned_sweep_job = ml_client.create_or_update(sweep_job)
 ```
+# Create a MLTable data asset 
 
+A MLTable data asset allows you to point to tabular data. You must have the `mltable` [`Python SDK`](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-mltable?view=azureml-api-2&tabs=cli) and `pandas` installed in your Python environment, with this command:
+
+```bash
+pip install -U mltable azureml-dataprep[pandas]
+```
+To create a MLTable data asset, you can use the `from_parquet_files` method.
+```python
+import mltable
+
+# glob the parquet file paths.
+paths = [
+    {
+        "pattern": "wasbs://<account_name>.blob.core.windows.net/<container_name>/<folder>/<file>.parquet"
+    },
+]
+
+# create a table from the parquet paths
+tbl = mltable.from_parquet_files(paths)
+df = tbl.to_pandas_dataframe()
+```
+you can also see the [`MLTable documentation`](https://learn.microsoft.com/en-us/training/modules/make-data-available-azure-machine-learning/4-create-data-asset) for more information.
