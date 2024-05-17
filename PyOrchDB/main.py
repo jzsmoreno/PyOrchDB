@@ -115,6 +115,7 @@ class ETLWorkflow:
         self.add_config = add_config
         if self.add_config:
             self._load_config()
+        logs_path = kwargs["logs_path"] if "logs_path" in kwargs else "./logs/"
         for dir in self.directories:
             print(f"Processing {dir}")
             filter_files = list_filter(files, dir)
@@ -124,7 +125,7 @@ class ETLWorkflow:
             )
             df_list, name_list = check_empty_df(df_list, name_list)
             # Create the necessary logs
-            self._update_logs(dir, name_list)
+            self._update_logs(dir, name_list, logs_path)
             errors = []
             for j, _ in enumerate(df_list):
                 # Preliminary corrections

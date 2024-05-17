@@ -4,7 +4,8 @@ on:
     push:
       branches:
         - 'main'
-        - 'feature/release'
+      paths:
+        - 'PyOrchDB/VERSION'
 
 jobs:
   build-and-publish-to-gemfury:
