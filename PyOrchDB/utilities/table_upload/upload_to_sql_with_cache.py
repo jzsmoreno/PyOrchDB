@@ -19,11 +19,15 @@ datatype_dict = dict(zip(pandas_types, sql_types))
 def load_cache(file_path: str) -> set:
     """Read cache function.
 
-    Args:
-        file_path (`str`): path where the file is located
+    Parameters
+    ----------
+    file_path : `str`
+        path where the file is located.
 
-    Returns:
-        set: the stored cache
+    Returns
+    -------
+    `set`
+        the stored cache.
     """
     try:
         with open(file_path, "rb") as file:
@@ -40,9 +44,12 @@ def load_cache(file_path: str) -> set:
 def save_cache(file_path: str, data: set) -> None:
     """Function that saves the cache and overwrites it.
 
-    Args:
-        file_path (`str`): path where the cache will be saved
-        data (`set`): the cache to be saved
+    Parameters
+    ----------
+    file_path : `str`
+        path where the cache will be saved.
+    data : `set`
+        the cache to be saved.
     """
     with open(file_path, "wb") as file:
         pickle.dump(data, file)
@@ -51,12 +58,17 @@ def save_cache(file_path: str, data: set) -> None:
 def add_cache(cache: set, data_set: set) -> set:
     """Update cache with new information.
 
-    Args:
-        cache (`set`): the cache to be updated
-        data_set (`set`): the information to update the cache with
+    Parameters
+    ----------
+    cache : `set`
+        the cache to be updated.
+    data_set : `set`
+        the information to update the cache with.
 
-    Returns:
-        set: the cache with the updated information
+    Returns
+    -------
+    `set`
+        the cache with the updated information.
     """
     cache.update(data_set)
     return cache
@@ -65,12 +77,17 @@ def add_cache(cache: set, data_set: set) -> set:
 def is_duplicate(cache: set, data: list) -> Tuple[bool, list, set]:
     """Function that implements the logic to avoid duplicate inserts.
 
-    Args:
-        cache (`set`): the cache to be checked
-        data (`list`): the data to be compared with
+    Parameters
+    ----------
+    cache : `set`
+        the cache to be checked.
+    data : `list`
+        the data to be compared with.
 
-    Returns:
-        Tuple[`bool`, `list`, `set`]: indicates whether inserts were previously performed, the difference of the inserts and their set.
+    Returns
+    -------
+    Tuple[`bool`, `list`, `set`]
+        indicates whether inserts were previously performed, the difference of the inserts and their set.
     """
     data_set = set(tuple(row) for row in data)
 
