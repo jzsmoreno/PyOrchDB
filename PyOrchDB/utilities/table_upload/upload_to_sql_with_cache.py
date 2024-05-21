@@ -26,7 +26,7 @@ def load_cache(file_path: str) -> set:
 
     Returns
     -------
-    `set` 
+    `set`
         the stored cache.
     """
     try:
