@@ -1,2 +1,3 @@
+recursive-include PyOrchDB *
 include requirements.txt
 include run_workflow.py
