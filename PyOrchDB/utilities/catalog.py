@@ -16,13 +16,19 @@ def set_table_names(
 ) -> List[str]:
     """function that takes the default names for the tables in the file `table_names.yml`
 
-    Args:
-        table_names (List[`str`]): list of original names of the tables
-        default_name (`bool`): if `True`, the default name will be used when there is no match.
-        file_path (`str`): path where the catalog of tables is located
+    Parameters
+    ----------
+    table_names : List[`str`]
+        list of original names of the tables.
+    default_name : `bool`
+        if `True`, the default name will be used when there is no match.
+    file_path : `str`
+        path where the catalog of tables is located.
 
-    Returns:
-        List[`str`]: names changed to those written in the `.yml` file
+    Returns
+    -------
+    List[`str`]
+        names changed to those written in the `.yml` file.
     """
     with open(file_path, "r") as file:
         yaml_table = yaml.safe_load(file)
