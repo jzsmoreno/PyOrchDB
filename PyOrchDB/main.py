@@ -1,20 +1,24 @@
 import os
-import sys
+import re
 import warnings
 from abc import abstractmethod
-from re import Pattern
+from typing import List
 
 import yaml
-from merge_by_lev import *
+from merge_by_lev.main import clear_console, merge_by_similarity
 from merge_by_lev.schema_config import DataSchema, StandardColumns
 from merge_by_lev.tools import check_empty_df
+from pandas.core.frame import DataFrame
 from pyarrow import Table
-from pydbsmgr import clean_transform, drop_empty_columns
+from pydbsmgr import drop_empty_columns
 from pydbsmgr.lightest import LightCleaner
 from pydbsmgr.utils.azure_sdk import StorageController
 from pydbsmgr.utils.tools import ColumnsCheck, ColumnsDtypes
+from tabulate import tabulate
 
 from PyOrchDB.utilities import (
+    BlobPrefix,
+    DatabaseManager,
     EventController,
     get_directories,
     insert_period,
@@ -56,8 +60,7 @@ class ETLWorkflow:
             "{ODBC Driver %s for SQL Server}" % ODBC_DRIVER, db_conn_string
         )
         pattern_pwd = re.compile(r"\{your_password_here\}")
-        db_conn_string = pattern_pwd.sub(db_conn_pwd, db_conn_string)
-        self.db_conn_string = db_conn_string
+        self.db_conn_string = pattern_pwd.sub(db_conn_pwd, db_conn_string)
         self.project = project_name
 
         self.controller = StorageController(self.conn_string, self.container_name)
@@ -68,7 +71,7 @@ class ETLWorkflow:
         self.table_names: list = []
         self.client_name = client_name
 
-    def validate_input_parameters(self, pattern_db: Pattern, db_conn_string: str) -> None:
+    def validate_input_parameters(self, pattern_db: re.Pattern, db_conn_string: str) -> None:
         """Check if input parameters are valid"""
 
         # Checks with regex if the connection strings are valid
@@ -119,11 +122,11 @@ class ETLWorkflow:
         for dir in self.directories:
             print(f"Processing {dir}")
             filter_files = list_filter(files, dir)
-            self.controller.set_BlobPrefix(filter_files)
+            self.controller.file_list = [BlobPrefix(name) for name in filter_files]
             df_list, name_list = self.controller.get_excel_csv(
-                self.directory, "\w+.(xlsx|csv)", True
+                directory_name=self.directory, regex="\w+.(xlsx|csv)", manual_mode=True
             )
-            df_list, name_list = check_empty_df(df_list, name_list)
+            df_list, name_list = check_empty_df(dfs=df_list, names=name_list)
             # Create the necessary logs
             self._update_logs(dir, name_list, logs_path)
             errors = []
@@ -140,12 +143,20 @@ class ETLWorkflow:
                 df_list[j] = self._ops_cols(df_list[j])
                 # Progress is shown
                 print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
-                clearConsole()
+                clear_console()
             df_list, name_list = self._remove_errors(errors, df_list, name_list)
             # A concatenation is performed according to the similarity of the databases
-            dfs, names, _ = merge_by_similarity(
-                df_list, name_list, dist_min=dist_min, match_cols=match_cols, drop_empty=drop_empty
-            )
+            try:
+                dfs, names, _ = merge_by_similarity(
+                    df_list,
+                    name_list,
+                    dist_min=dist_min,
+                    match_cols=match_cols,
+                    drop_empty=drop_empty,
+                )
+            except ZeroDivisionError:
+                print("\nThere is only one DataFrame. No merge is necessary.\n")
+
             # Update the list of table names
             self._name_settings(names, dir)
             self.tables += dfs
@@ -190,7 +201,7 @@ class ETLWorkflow:
                 print(f"Starting the cleaning process of {self.table_names[i]}")
                 self.tables[i] = self.clean_db(self.tables[i], **kwargs)
                 print("process completed!")
-                clearConsole()
+                clear_console()
             handler = ColumnsDtypes(self.tables[i])
             self.tables[i] = handler.correct()
             if engine == "pyarrow":
@@ -217,39 +228,29 @@ class ETLWorkflow:
 
     def upload(
         self,
-        ram_usage: bool = False,
         container_name: str = "processed",
         tables: List[DataFrame] = [],
         names: List[str] = [],
         engine: str = "pyarrow",
-        with_cache: bool = True,
         **kwargs,
     ) -> None:
         print("Uploading data to Azure SQL Database...\n")
-        if with_cache:
-            from PyOrchDB.utilities.table_upload import UploadToSQL
-        else:
-            from PyOrchDB.utilities.upload_to_sql import UploadToSQL
-        pwd_verbose = kwargs["pwd_verbose"] if "pwd_verbose" in kwargs else False
-        if ram_usage == False and engine == "pyarrow":
-            self.loader = StorageController(self.conn_string, container_name)
-            files_processed = self.loader.get_all_blob(self.project)
-            files_filtered: list = []
-            try:
-                _ = self.directories[0]
-            except AttributeError:
-                self.set_directories(files_processed)
-            for dir in self.directories:
-                files_filtered += list_filter(files_processed, dir, True)
-            print(
-                "These are the tables that will be uploaded to SQL or will be updated :",
-                files_filtered,
-            )
-            files_parquet = list_filter(files_filtered, ".parquet")
-            db_handler = UploadToSQL(self.conn_string, container_name)
-            db_handler.upload_parquet(files_parquet, self.db_conn_string, self.project, **kwargs)
-        else:
-            pass
+        self.loader = StorageController(self.conn_string, container_name)
+        files_processed = self.loader.get_all_blob(self.project)
+        files_filtered: list = []
+        try:
+            _ = self.directories[0]
+        except AttributeError:
+            self.set_directories(files_processed)
+        for dir in self.directories:
+            files_filtered += list_filter(files_processed, dir, True)
+        print(
+            "These are the tables that will be uploaded to SQL or will be updated :",
+            files_filtered,
+        )
+        files_parquet = list_filter(files_filtered, ".parquet")
+        database_handler = DatabaseManager(self.conn_string, container_name, self.db_conn_string)
+        database_handler.upload(files=files_parquet, directory=self.project, **kwargs)
         print("process completed!")
 
     @abstractmethod
@@ -308,6 +309,8 @@ class ETLWorkflow:
                 None
             self.table_names.append(
                 "TB_BI_" + self.client_name.lower() + (dir.strip()).capitalize() + name
+                if not dir.find(".") != -1
+                else "TB_BI_" + self.client_name.lower() + name
             )
             self.table_data.append([len(self.table_names), self.table_names[-1]])
 
@@ -339,7 +342,7 @@ class ETLWorkflow:
 
     def _read_root(self, files) -> List[str]:
         """Read a list of file names in blob storage and return their root directories"""
-        self.controller.set_BlobPrefix(files)
+        self.controller.file_list = [BlobPrefix(name) for name in files]
         return get_directories(files)
 
     def _update_catalog(self, files, delete_catalog) -> None:
