@@ -1,105 +1,221 @@
+import logging
 import re
-from typing import List
+from typing import List, Tuple
 
-from pandas.core.frame import DataFrame
+import pandas as pd
+from pydbsmgr.fast_upload import UploadToSQL
+from pydbsmgr.utils.azure_sdk import StorageController
+from pydbsmgr.utils.tools import ColumnsDtypes
+
+# Setting up basic configuration for logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class BlobPrefix:
+    def __init__(self, name=""):
+        self._name = name
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        if isinstance(name, str):
+            self._name = name
+        else:
+            raise ValueError("Name must be provided as a string.")
+
+
+class DatabaseManager(StorageController, UploadToSQL):
+    """Manages the uploading of `.parquet` files to SQL tables."""
+
+    def __init__(
+        self, connection_string: str, container_name: str, database_connection_string: str
+    ):
+        """
+        Initialize the DatabaseManager with Azure and SQL connections.
+
+        Parameters
+        ----------
+        connection_string : `str`
+            Connection string for Azure Storage. This is used to authenticate and connect
+            to the Azure Blob Storage account.
+        container_name : `str`
+            Name of the Azure Blob container where the files are stored. This is used to
+            access the container for reading or writing data.
+        database_connection_string : `str`
+            Connection string for the SQL database. This is used to establish a connection
+            to the SQL database for data operations such as inserting or querying tables.
+
+        Returns
+        -------
+        None
+            This function initializes the connections but does not return any value.
+        """
+        super().__init__(connection_string, container_name)
+        super(UploadToSQL, self).__init__(database_connection_string)
+        self._verbose = True
+
+    def upload(
+        self,
+        files: List[str],
+        directory: str,
+        auto_resolve: bool = True,
+        frac: float = 0.01,
+        chunk_size: int = 20,
+        char_length: int = 256,
+        override_length: bool = True,
+        **kwargs,
+    ) -> None:
+        """
+        Uploads a collection of `.parquet` files to corresponding SQL tables.
+
+        Parameters
+        ----------
+        files : `list`
+            List of file patterns (regex) to match and identify the `.parquet` files to upload.
+        directory : `str`
+            Path to the directory in Azure Blob Storage where the `.parquet` files are stored.
+        auto_resolve : `bool`
+            Flag indicating whether to automatically resolve and infer column types
+            based on the data in the `.parquet` files (default is True).
+        frac : `float`
+            Fraction of the data to sample for inferring column types (range: 0.0 to 1.0).
+            A smaller value may speed up the inference process at the cost of accuracy.
+        chunk_size : `int`
+            The number of rows to include in each chunk when uploading data to the SQL database.
+            This allows for efficient memory management and faster upload times.
+        char_length : `int`
+            Default length for `VARCHAR` columns in the SQL tables. This value is used when
+            the length of a `VARCHAR` column cannot be automatically inferred.
+        override_length : `bool`
+            Flag indicating whether to override the existing column lengths in
+            the SQL tables if they already exist. If set to True, the new length from
+            `char_length` will be applied to columns.
+
+        Returns
+        -------
+        None
+            This function does not return any value. It performs the upload operation to the SQL database.
+        """
+        method = kwargs["method"] if "method" in kwargs else "append"
+        for file_pattern in files:
+            try:
+                df, file_name = self.get_parquet(directory_name=directory, regex=file_pattern)
+                if auto_resolve:
+                    handler = ColumnsDtypes(df[0])
+                    df[0] = handler.correct(sample_frac=frac)
+                self.execute(
+                    df=df[0],
+                    table_name=file_name[0],
+                    chunk_size=chunk_size,
+                    method=method,
+                    char_length=char_length,
+                    override_length=override_length,
+                    auto_resolve=auto_resolve,
+                )
+                logger.info(f"Successfully uploaded {file_pattern} to SQL table {file_name}.")
+            except Exception as e:
+                try:
+                    self.execute(
+                        df=df[0],
+                        table_name=file_name[0],
+                        chunk_size=chunk_size,
+                        method="override",
+                        char_length=char_length,
+                        override_length=override_length,
+                        auto_resolve=auto_resolve,
+                    )
+                    logger.info(f"Successfully uploaded {file_pattern} to SQL table {file_name}.")
+                except:
+                    logger.error(f"Failed to upload {file_pattern}: {str(e)}")
 
 
 def get_directories(files: List[str], subfolder_level: int = 1) -> List[str]:
     """Get directories from list of files."""
-    directories = set()
-    for file in files:
-        directories.add(file.split("/")[subfolder_level])
-    if len(directories) >= 1:
+    directories = set(file.split("/")[subfolder_level] for file in files)
+
+    if directories:
         print("The directories could be successfully inferred.")
         return list(directories)
     else:
         print("No directory found to process!")
-        subfolder_level = input(
-            "Inserts the level at which they can be found (number of subfolders) : "
+        subfolder_level = int(
+            input("Insert the level at which they can be found (number of subfolders): ")
         )
-        return get_directories(files, int(subfolder_level))
+        return get_directories(files, subfolder_level)
 
 
-def list_filter(elements: list, character: str, lowercase: bool = False) -> List[str]:
-    """Function that filters a list from a criteria
+def list_filter(elements: List[str], character: str, lowercase: bool = False) -> List[str]:
+    """Filter a list based on a criteria.
 
     Args:
-        elements (`list`): list of values to be filtered
-        character (`str`): filter criteria
-        lowercase (`bool`): allow `str` comparison by converting to lowercase
+        elements (List[str]): List of values to be filtered.
+        character (str): Filter criteria.
+        lowercase (bool): Allow string comparison by converting to lowercase.
 
     Returns:
-        List[`str`]: list of filtered elements
+        List[str]: List of filtered elements.
     """
-    element_copy = elements.copy()
     if lowercase:
-        elements = map(lambda x: x.lower(), elements)
+        lower_elements = [element.lower() for element in elements]
         character = character.lower()
-    filter_elements = []
-    for i, element in enumerate(elements):
-        if element.find(character) != -1:
-            filter_elements.append(element_copy[i])
-    return filter_elements
+        return [elements[i] for i, elem in enumerate(lower_elements) if character in elem]
+
+    return [element for element in elements if character in element]
 
 
-def list_remove(elements: list, character: str) -> List[str]:
-    """Function that removes items from a list based on a criteria
+def list_remove(elements: List[str], character: str) -> List[str]:
+    """Remove items from a list based on a criteria.
 
     Args:
-        elements (`list`): list of values to be filtered
-        character (`str`): filter criteria
+        elements (List[str]): List of values to be filtered.
+        character (str): Filter criteria.
 
     Returns:
-        List[`str`]: list of filtered elements
+        List[str]: List of filtered elements.
     """
-    for element in elements:
-        if element.find(character) != -1:
-            elements.remove(element)
-    return elements
+    return [element for element in elements if character not in element]
 
 
 def insert_period(
-    df: DataFrame, df_name: str, REGEX_PATTERN: str = r"\d{4}-\d{2}-\d{2}"
-) -> DataFrame:
-    """Function that inserts the period column from the database name
+    df: pd.DataFrame, df_name: str, regex_pattern: str = r"\d{4}-\d{2}-\d{2}"
+) -> pd.DataFrame:
+    """Insert the period column from the database name.
 
     Args:
-        df (`DataFrame`): database to which the column will be added
-        df_name (`str`): name of the database
+        df (pd.DataFrame): Database to which the column will be added.
+        df_name (str): Name of the database.
+        regex_pattern (str): Regex pattern for extracting the period.
 
     Returns:
-        DataFrame: resulting base with the period column
+        pd.DataFrame: Resulting base with the period column.
     """
-    period_extract = re.findall(REGEX_PATTERN, df_name)
-    if len(period_extract) > 0:
-        period = period_extract[0]
-    else:
-        REGEX_PATTERN = r".*([1-2][0-9]{3})"
-        period_extract = re.findall(REGEX_PATTERN, df_name)
-        if len(period_extract) > 0:
-            period = period_extract[0]
-        else:
-            period = ""
-    cols = df.columns
-    filter_cols = list_filter(cols, "periodo")
+    period_extract = re.findall(regex_pattern, df_name)
 
-    if not len(filter_cols) > 0:
+    if not period_extract:
+        regex_pattern = r".*([1-2][0-9]{3})"
+        period_extract = re.findall(regex_pattern, df_name)
+
+    period = period_extract[0] if period_extract else ""
+
+    if "periodo" not in df.columns:
         df["periodo"] = period
 
     return df
 
 
-def remove_by_dict(df: DataFrame, to_delete: list) -> DataFrame:
-    """Remove a set of columns from `DataFrame`
+def remove_by_dict(df: pd.DataFrame, to_delete: List[str]) -> pd.DataFrame:
+    """Remove a set of columns from DataFrame.
 
     Args:
-        df (`DataFrame`): `DataFrame` from which columns will be removed
-        to_delete (`list`): `list` of columns to be removed
+        df (pd.DataFrame): DataFrame from which columns will be removed.
+        to_delete (List[str]): List of columns to be removed.
 
     Returns:
-        `DataFrame`: `DataFrame` without the columns to be removed
+        pd.DataFrame: DataFrame without the columns to be removed.
     """
-    cols = set(df.columns)
-    columns_to_keep = list(cols.difference(set(to_delete)))
-    df = df[columns_to_keep].copy()
-    return df
+    columns_to_keep = [col for col in df.columns if col not in to_delete]
+    return df[columns_to_keep].copy()

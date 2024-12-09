@@ -1,20 +1,25 @@
+import logging
 import os
-import sys
+import re
 import warnings
 from abc import abstractmethod
-from re import Pattern
+from typing import List
 
 import yaml
-from merge_by_lev import *
+from merge_by_lev.main import clear_console, merge_by_similarity
 from merge_by_lev.schema_config import DataSchema, StandardColumns
 from merge_by_lev.tools import check_empty_df
+from pandas.core.frame import DataFrame
 from pyarrow import Table
-from pydbsmgr import clean_transform, drop_empty_columns
+from pydbsmgr import drop_empty_columns
 from pydbsmgr.lightest import LightCleaner
 from pydbsmgr.utils.azure_sdk import StorageController
 from pydbsmgr.utils.tools import ColumnsCheck, ColumnsDtypes
+from tabulate import tabulate
 
 from PyOrchDB.utilities import (
+    BlobPrefix,
+    DatabaseManager,
     EventController,
     get_directories,
     insert_period,
@@ -23,6 +28,9 @@ from PyOrchDB.utilities import (
     remove_by_dict,
     set_table_names,
 )
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class ETLWorkflow:
@@ -41,53 +49,59 @@ class ETLWorkflow:
     ):
         self.conn_string = conn_string
         self.container_name = container_name
-        self.storage_name = conn_string.split(";")[1].split("=")[1]
+        self.storage_name = self._extract_storage_name(conn_string)
         self.exclude_files = exclude_files
         self.directory = directory
         self.verbose = verbose
-        # Define the regular expression pattern
+
+        # Validate and process database connection string
         pattern_db = re.compile(r"\{(ODBC Driver \d{2} for SQL Server|SQL Server)\}")
-        # Validating input parameters
         self.validate_input_parameters(pattern_db, db_conn_string)
-        # Perform the substitution
         if isinstance(db_conn_string, list):
             db_conn_string = db_conn_string[0]
+        self.db_conn_string = self._process_db_connection_string(
+            pattern_db,
+            pattern_pwd=re.compile(r"\{your_password_here\}"),
+            db_conn_string=db_conn_string,
+            db_conn_pwd=db_conn_pwd,
+            ODBC_DRIVER=ODBC_DRIVER,
+        )
+
+        self.project = project_name
+        self.controller = StorageController(self.conn_string, self.container_name)
+        self.manager = EventController(self.conn_string, self.container_name, self.project)
+        self.tables: List[DataFrame] = []
+        self.table_data: List[List[int, str]] = []
+        self.table_names: List[str] = []
+        self.client_name = client_name
+
+    @staticmethod
+    def _extract_storage_name(conn_string: str) -> str:
+        return conn_string.split(";")[1].split("=")[1]
+
+    def validate_input_parameters(self, pattern_db: re.Pattern, db_conn_string: str) -> None:
+        if not self.conn_string.startswith("DefaultEndpointsProtocol=https;AccountName="):
+            raise ValueError("Invalid storage account connection string.")
+        if len(db_conn_string) == 0:
+            warnings.warn("Database connection string was not provided.", UserWarning)
+        elif not pattern_db.search(db_conn_string):
+            raise ValueError("Invalid database connection string.")
+
+        if self.verbose:
+            print(f"Valid input parameters: {len(db_conn_string) != 0}")
+
+    def _process_db_connection_string(
+        self,
+        pattern_db: re.Pattern,
+        pattern_pwd: re.Pattern,
+        db_conn_string: str,
+        db_conn_pwd: str,
+        ODBC_DRIVER: str,
+    ) -> str:
         db_conn_string = pattern_db.sub(
             "{ODBC Driver %s for SQL Server}" % ODBC_DRIVER, db_conn_string
         )
-        pattern_pwd = re.compile(r"\{your_password_here\}")
-        db_conn_string = pattern_pwd.sub(db_conn_pwd, db_conn_string)
-        self.db_conn_string = db_conn_string
-        self.project = project_name
-
-        self.controller = StorageController(self.conn_string, self.container_name)
-
-        self.manager = EventController(self.conn_string, self.container_name, self.project)
-        self.tables: list = []
-        self.table_data: list = []
-        self.table_names: list = []
-        self.client_name = client_name
-
-    def validate_input_parameters(self, pattern_db: Pattern, db_conn_string: str) -> None:
-        """Check if input parameters are valid"""
-
-        # Checks with regex if the connection strings are valid
-        if not self.conn_string.startswith("DefaultEndpointsProtocol=https;AccountName="):
-            raise ValueError(
-                "Storage account connection string is invalid!, please provide valid string."
-            )
-
-        if len(db_conn_string) == 0:
-            warning_type = "UserWarning"
-            msg = "A database connection string was not provided."
-            print(f"{warning_type}: {msg}")
-        elif not pattern_db.search(db_conn_string):
-            raise ValueError("Invalid database connection string!, please provide valid string.")
-
-        if self.verbose:
-            print(
-                f"Valid input parameters!, database connection string : {len(db_conn_string) != 0}"
-            )
+        return pattern_pwd.sub(db_conn_pwd, db_conn_string)
 
     def build(
         self,
@@ -99,8 +113,7 @@ class ETLWorkflow:
         update_catalog: bool = True,
         **kwargs,
     ) -> None:
-        """Building a data pipeline by downloading files from Azure Blob storage and creating tables"""
-        print("\nStart building process...\n")
+        print("Start building process...\n")
         files = self._get_file_list(**kwargs)
         if update_catalog:
             files = self._update_catalog(files, delete_catalog)
@@ -110,46 +123,55 @@ class ETLWorkflow:
                     "delete_catalog=True ignored because update_catalog=False", UserWarning
                 )
             files = self.manager.diff(files)
-        # Get all directories
+
         self.set_directories(files)
         self.add_config = add_config
         if self.add_config:
             self._load_config()
-        logs_path = kwargs["logs_path"] if "logs_path" in kwargs else "./logs/"
+
+        logs_path = kwargs.get("logs_path", "./logs/")
         for dir in self.directories:
             print(f"Processing {dir}")
             filter_files = list_filter(files, dir)
-            self.controller.set_BlobPrefix(filter_files)
+            self.controller.file_list = [BlobPrefix(name) for name in filter_files]
             df_list, name_list = self.controller.get_excel_csv(
-                self.directory, "\w+.(xlsx|csv)", True
+                directory_name=self.directory, regex=r"\w+\.(xlsx|csv)", manual_mode=True
             )
-            df_list, name_list = check_empty_df(df_list, name_list)
-            # Create the necessary logs
+
+            df_list, name_list = check_empty_df(dfs=df_list, names=name_list)
             self._update_logs(dir, name_list, logs_path)
-            errors = []
-            for j, _ in enumerate(df_list):
-                # Preliminary corrections
+
+            errors, processed_dfs = [], []
+            for j, df in enumerate(df_list):
                 print(f"Applying DataFrame corrections to {name_list[j]}")
-                df_list[j] = self.fix(df_list[j])
-                if df_list[j] is None:
+                corrected_df = self.fix(df)
+                if corrected_df is None:
                     errors.append(j)
                     continue
-                # If necessary, the period column is inserted.
-                df_list[j] = insert_period(df_list[j], name_list[j])
-                # Additional operations on columns
-                df_list[j] = self._ops_cols(df_list[j])
-                # Progress is shown
-                print(j, "| Progress :", "{:.2%}".format(j / len(df_list)))
-                clearConsole()
-            df_list, name_list = self._remove_errors(errors, df_list, name_list)
-            # A concatenation is performed according to the similarity of the databases
-            dfs, names, _ = merge_by_similarity(
-                df_list, name_list, dist_min=dist_min, match_cols=match_cols, drop_empty=drop_empty
-            )
-            # Update the list of table names
+
+                corrected_df = insert_period(corrected_df, name_list[j])
+                corrected_df = self._ops_cols(corrected_df)
+
+                processed_dfs.append(corrected_df)
+                print(f"{j} | Progress: {100 * j / len(df_list):.2f}%")
+                clear_console()
+
+            df_list, name_list = self._remove_errors(errors, processed_dfs, name_list)
+
+            try:
+                dfs, names, _ = merge_by_similarity(
+                    df_list,
+                    name_list,
+                    dist_min=dist_min,
+                    match_cols=match_cols,
+                    drop_empty=drop_empty,
+                )
+            except ZeroDivisionError:
+                print("\nThere is only one DataFrame. No merge necessary.\n")
+
             self._name_settings(names, dir)
-            self.tables += dfs
-        del dfs, df_list
+            self.tables.extend(dfs)
+        del corrected_df, processed_dfs, df_list, name_list
 
     def curate(
         self, rename_manually: bool = True, cleaning: bool = True, engine: str = "pyarrow", **kwargs
@@ -190,7 +212,7 @@ class ETLWorkflow:
                 print(f"Starting the cleaning process of {self.table_names[i]}")
                 self.tables[i] = self.clean_db(self.tables[i], **kwargs)
                 print("process completed!")
-                clearConsole()
+                clear_console()
             handler = ColumnsDtypes(self.tables[i])
             self.tables[i] = handler.correct()
             if engine == "pyarrow":
@@ -217,39 +239,29 @@ class ETLWorkflow:
 
     def upload(
         self,
-        ram_usage: bool = False,
         container_name: str = "processed",
         tables: List[DataFrame] = [],
         names: List[str] = [],
         engine: str = "pyarrow",
-        with_cache: bool = True,
         **kwargs,
     ) -> None:
         print("Uploading data to Azure SQL Database...\n")
-        if with_cache:
-            from PyOrchDB.utilities.table_upload import UploadToSQL
-        else:
-            from PyOrchDB.utilities.upload_to_sql import UploadToSQL
-        pwd_verbose = kwargs["pwd_verbose"] if "pwd_verbose" in kwargs else False
-        if ram_usage == False and engine == "pyarrow":
-            self.loader = StorageController(self.conn_string, container_name)
-            files_processed = self.loader.get_all_blob(self.project)
-            files_filtered: list = []
-            try:
-                _ = self.directories[0]
-            except AttributeError:
-                self.set_directories(files_processed)
-            for dir in self.directories:
-                files_filtered += list_filter(files_processed, dir, True)
-            print(
-                "These are the tables that will be uploaded to SQL or will be updated :",
-                files_filtered,
-            )
-            files_parquet = list_filter(files_filtered, ".parquet")
-            db_handler = UploadToSQL(self.conn_string, container_name)
-            db_handler.upload_parquet(files_parquet, self.db_conn_string, self.project, **kwargs)
-        else:
-            pass
+        self.loader = StorageController(self.conn_string, container_name)
+        files_processed = self.loader.get_all_blob(self.project)
+        files_filtered: list = []
+        try:
+            _ = self.directories[0]
+        except AttributeError:
+            self.set_directories(files_processed)
+        for dir in self.directories:
+            files_filtered += list_filter(files_processed, dir, True)
+        print(
+            "These are the tables that will be uploaded to SQL or will be updated :",
+            files_filtered,
+        )
+        files_parquet = list_filter(files_filtered, ".parquet")
+        database_handler = DatabaseManager(self.conn_string, container_name, self.db_conn_string)
+        database_handler.upload(files=files_parquet, directory=self.project, **kwargs)
         print("process completed!")
 
     @abstractmethod
@@ -308,6 +320,8 @@ class ETLWorkflow:
                 None
             self.table_names.append(
                 "TB_BI_" + self.client_name.lower() + (dir.strip()).capitalize() + name
+                if not dir.find(".") != -1
+                else "TB_BI_" + self.client_name.lower() + name
             )
             self.table_data.append([len(self.table_names), self.table_names[-1]])
 
@@ -339,7 +353,7 @@ class ETLWorkflow:
 
     def _read_root(self, files) -> List[str]:
         """Read a list of file names in blob storage and return their root directories"""
-        self.controller.set_BlobPrefix(files)
+        self.controller.file_list = [BlobPrefix(name) for name in files]
         return get_directories(files)
 
     def _update_catalog(self, files, delete_catalog) -> None:

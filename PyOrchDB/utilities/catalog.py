@@ -1,12 +1,17 @@
 import datetime
 import sys
-from typing import List
+from typing import List, Optional
 
 import pandas as pd
 import yaml
-from pandas.core.frame import DataFrame
 from pandas.errors import EmptyDataError
 from pydbsmgr.utils.azure_sdk import StorageController
+
+
+def load_table_names(file_path: str) -> dict:
+    """Load table names from a YAML file."""
+    with open(file_path, "r") as file:
+        return yaml.safe_load(file)
 
 
 def set_table_names(
@@ -14,92 +19,91 @@ def set_table_names(
     default_name: bool = False,
     file_path: str = "./utilities/table_names.yml",
 ) -> List[str]:
-    """function that takes the default names for the tables in the file `table_names.yml`
-
-    Parameters
-    ----------
-    table_names : List[`str`]
-        list of original names of the tables.
-    default_name : `bool`
-        if `True`, the default name will be used when there is no match.
-    file_path : `str`
-        path where the catalog of tables is located.
-
-    Returns
-    -------
-    List[`str`]
-        names changed to those written in the `.yml` file.
-    """
-    with open(file_path, "r") as file:
-        yaml_table = yaml.safe_load(file)
-
+    """Map original table names to those in the YAML file."""
+    yaml_table = load_table_names(file_path)
     keys_tables = [k.split()[0] for k in yaml_table.keys()]
-    for i, name in enumerate(table_names):
+
+    updated_names = []
+    for name in table_names:
+        new_name = name
         for key_name in keys_tables:
-            if name.find(key_name) != -1:
-                if type(yaml_table[key_name]) == str:
-                    table_names[i] = yaml_table[key_name]
+            if key_name in name:
+                value = yaml_table[key_name]
+                if isinstance(value, str):
+                    new_name = value
+                    break
                 else:
-                    sub_keys_tables = [k.split()[0] for k in yaml_table[key_name].keys()]
-                    sub_keys_tables.remove("None")
+                    sub_keys_tables = [k.split()[0] for k in value.keys() if k != "None"]
                     for sub_key_name in sub_keys_tables:
-                        if name.find(sub_key_name) != -1:
-                            table_names[i] = yaml_table[key_name][sub_key_name]
-                        elif default_name:
-                            table_names[i] = yaml_table[key_name]["None"]
-    return table_names
+                        if sub_key_name in name:
+                            new_name = value[sub_key_name]
+                            break
+                    else:
+                        if default_name:
+                            new_name = value.get("None", name)
+                break
+        updated_names.append(new_name)
+
+    return updated_names
 
 
 class EventController(StorageController):
     def __init__(self, connection_string: str, container_name: str, directory: str):
         super().__init__(connection_string, container_name)
-        self.cat_ = pd.DataFrame()
+        self.catalog = pd.DataFrame()
         self.directory = directory
 
     def create_log(
         self, files: List[str], overwrite: bool = False, delete_catalog: bool = False
     ) -> None:
-        events = pd.DataFrame()
-        events["files"] = files
-        events["datetime"] = datetime.datetime.now()
+        """Create a log of uploaded files with timestamps."""
+        events = pd.DataFrame({"files": files, "datetime": datetime.datetime.now()})
         if delete_catalog:
             overwrite = True
-        super().upload_excel_csv(self.directory, [events], ["catalog"], overwrite=overwrite)
+        self.upload_catalog(events, overwrite)
 
-    def audit(self) -> DataFrame | None:
+    def audit(self) -> Optional[pd.DataFrame]:
+        """Retrieve the current catalog of files."""
         try:
-            self.cat_, _ = super().get_excel_csv(self.directory, "catalog.csv")
+            self.catalog, _ = super().get_excel_csv(self.directory, "catalog.csv")
         except EmptyDataError:
             return None
-        if len(self.cat_) > 0:
-            return self.cat_[0]
+
+        if len(self.catalog) > 0:
+            return self.catalog[0]
         return None
 
     def remove(self, files_not_loaded: List[str]) -> None:
-        self.cat_, _ = super().get_excel_csv(self.directory, "catalog.csv")
-        self.cat_ = self.cat_[0]
-        self.cat_ = self.cat_[~self.cat_["files"].str.contains("|".join(files_not_loaded))]
-        super().upload_excel_csv(self.directory, [self.cat_], ["catalog"], overwrite=True)
+        """Remove entries from the catalog for specified files."""
+        self.catalog, _ = super().get_excel_csv(self.directory, "catalog.csv")
+        if not self.catalog.empty:
+            self.catalog = self.catalog[
+                ~self.catalog["files"].str.contains("|".join(files_not_loaded))
+            ]
+            self.upload_catalog(self.catalog)
 
     def update(self, files: List[str], overwrite: bool = True) -> None:
-        events = pd.DataFrame()
-        events["files"] = files
-        events["datetime"] = datetime.datetime.now()
-        catalog = self.audit()
-        catalog = pd.concat([catalog, events], ignore_index=True)
-        super().upload_excel_csv(self.directory, [catalog], ["catalog"], overwrite=overwrite)
+        """Update the catalog with new entries."""
+        events = pd.DataFrame({"files": files, "datetime": datetime.datetime.now()})
+        if (catalog := self.audit()) is not None:
+            events = pd.concat([catalog, events], ignore_index=True)
+        self.upload_catalog(events, overwrite)
 
     def _clean(self) -> None:
-        super().upload_excel_csv(self.directory, [pd.DataFrame()], ["catalog"], overwrite=True)
+        """Clear the catalog."""
+        self.upload_catalog(pd.DataFrame(), True)
 
     def diff(self, files: List[str]) -> List[str]:
-        cat_ = self.audit()
-        if cat_ is not None:
-            cat_list = set((cat_)["files"])
+        """Find new files not in the catalog."""
+        if (cat := self.audit()) is not None and not cat.empty:
+            cat_list = set(cat["files"])
             new_files = list(set(files).difference(cat_list))
-            if len(new_files) > 0:
+            if new_files:
                 return new_files
             else:
                 sys.exit("There is nothing new to upload")
-        else:
-            return files
+        return files
+
+    def upload_catalog(self, catalog: pd.DataFrame, overwrite: bool = False) -> None:
+        """Upload the catalog to Azure storage."""
+        super().upload_excel_csv(self.directory, [catalog], ["catalog"], overwrite=overwrite)
