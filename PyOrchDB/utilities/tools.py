@@ -56,6 +56,7 @@ class DatabaseManager(StorageController, UploadToSQL):
         """
         super().__init__(connection_string, container_name)
         super(UploadToSQL, self).__init__(database_connection_string)
+        self._verbose = True
 
     def upload(
         self,
@@ -66,6 +67,7 @@ class DatabaseManager(StorageController, UploadToSQL):
         chunk_size: int = 20,
         char_length: int = 256,
         override_length: bool = True,
+        **kwargs,
     ) -> None:
         """
         Uploads a collection of `.parquet` files to corresponding SQL tables.
@@ -98,6 +100,7 @@ class DatabaseManager(StorageController, UploadToSQL):
         None
             This function does not return any value. It performs the upload operation to the SQL database.
         """
+        method = kwargs["method"] if "method" in kwargs else "append"
         for file_pattern in files:
             try:
                 df, file_name = self.get_parquet(directory_name=directory, regex=file_pattern)
@@ -108,7 +111,7 @@ class DatabaseManager(StorageController, UploadToSQL):
                     df=df[0],
                     table_name=file_name[0],
                     chunk_size=chunk_size,
-                    method="append",
+                    method=method,
                     char_length=char_length,
                     override_length=override_length,
                     auto_resolve=auto_resolve,
