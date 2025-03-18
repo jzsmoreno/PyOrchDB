@@ -1,16 +1,44 @@
 import os
 import sys
+import time
 import uuid
 
 from azure.ai.ml import MLClient
+from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.entities import (
     CodeConfiguration,
     Environment,
     ManagedOnlineDeployment,
     ManagedOnlineEndpoint,
+    Model,
 )
 from azure.identity import DefaultAzureCredential
-from azureml.core import Model, Workspace
+from dotenv import load_dotenv
+
+# Set the timer for 10 minutes (600 seconds)
+timer_duration = 10 * 60
+
+load_dotenv()
+
+
+def countdown_timer_with_progress(duration):
+    try:
+        print(f"Timer started for {duration // 60} minutes and {duration % 60} seconds.")
+        bar_length = 40
+        for remaining in range(duration, 0, -1):
+            minutes, seconds = divmod(remaining, 60)
+            progress = (duration - remaining) / duration
+            filled_length = int(bar_length * progress)
+            bar = "#" * filled_length + "-" * (bar_length - filled_length)
+            sys.stdout.write(
+                f"\rTime remaining: {minutes:02}:{seconds:02} |[{bar}] {int(progress * 100)}%"
+            )
+            sys.stdout.flush()
+            time.sleep(1)
+        print("\nTime's up!")
+    except KeyboardInterrupt:
+        print("\nTimer was interrupted.")
+        sys.exit()
 
 
 class UploadModelToML:
@@ -22,38 +50,31 @@ class UploadModelToML:
         self._resource_group = resource_group
         self._workspace_name = workspace_name
 
+        # Get a handle to the workspace
+        self.ml_client = MLClient(
+            credential=DefaultAzureCredential(),
+            subscription_id=self._subscription_id,
+            resource_group_name=self._resource_group,
+            workspace_name=self._workspace_name,
+        )
+
     def upload_model(self, model_path: str, model_name: str) -> None:
         """Create a connection to the `azure ml` resource
         and to load the model you need to add the path and name of your model."""
         self._model_name = model_name
         try:
-            workspace = Workspace(
-                subscription_id=self._subscription_id,
-                resource_group=self._resource_group,
-                workspace_name=self._workspace_name,
+            mlflow_model = Model(
+                path=model_path,
+                type=AssetTypes.MLFLOW_MODEL,
+                name=model_name,
+                description="MLflow Model created from local files.",
             )
-            print("Successful connection to Azure Machine Learning.")
-            loaded_model = Model.register(
-                workspace=workspace,
-                model_path=model_path,
-                model_name=model_name,
-                tags={"type": "pkl"},
-            )
-            print(".pkl model successfully registered in Azure Machine Learning.")
+            self.ml_client.models.create_or_update(mlflow_model)
+            print("Model successfully registered in Azure Machine Learning.")
         except Exception as e:
             print(f"Error connecting to Azure Machine Learning: {str(e)}")
 
     def create_endpoint(self) -> None:
-        # authenticate
-        credential = DefaultAzureCredential()
-
-        # Get a handle to the workspace
-        self.ml_client = MLClient(
-            credential=credential,
-            subscription_id=self._subscription_id,
-            resource_group_name=self._resource_group,
-            workspace_name=self._workspace_name,
-        )
         # Create a unique name for the endpoint
         self.online_endpoint_name = "model-endpoint-" + str(uuid.uuid4())[:8]
         # define an online endpoint
@@ -99,14 +120,25 @@ class UploadModelToML:
         deployment_name = (
             kwargs["deployment_name"] if "deployment_name" in kwargs else "deployment-environment"
         )
-        if isinstance(environment, str) and custom:
-            if (environment.lower()).startswith("azureml") == -1 and environment.endswith(".yaml"):
+        version = kwargs["version"] if "version" in kwargs else "1"
+        create_environment = (
+            kwargs["create_environment"] if "create_environment" in kwargs else True
+        )
+
+        if isinstance(environment, str) and custom and create_environment:
+            if environment.endswith(".yaml"):
+                print("conda_file: ", environment)
                 environment = Environment(
                     conda_file=environment,
                     image=image,
                     name=deployment_name,
+                    version=version,
+                    description="Custom environment for deployment",
                 )
+                print("Creating a custom environment for deployment.")
                 self.ml_client.environments.create_or_update(environment)
+        else:
+            environment = self.ml_client.environments.get(name=environment, version=version)
 
         # Learn more on https://azure.microsoft.com/en-us/pricing/details/machine-learning/.
         blue_deployment = ManagedOnlineDeployment(
@@ -123,10 +155,16 @@ class UploadModelToML:
         blue_deployment = self.ml_client.online_deployments.begin_create_or_update(
             blue_deployment
         ).result()
-
+        self.endpoint = self.ml_client.online_endpoints.get(name=self.online_endpoint_name)
         # expect the deployment to take approximately 8 to 10 minutes.
+        print("Waiting for deployment to complete...")
+        countdown_timer_with_progress(timer_duration)
+        while blue_deployment.provisioning_state != "Succeeded":
+            print("Deployment is in state: ", blue_deployment.provisioning_state)
+
         # blue deployment takes 100% traffic
         self.endpoint.traffic = {"blue": 100}
+
         self.ml_client.online_endpoints.begin_create_or_update(self.endpoint).result()
         # return an object that contains metadata for the endpoint
         endpoint = self.ml_client.online_endpoints.get(name=self.online_endpoint_name)
@@ -139,7 +177,7 @@ class UploadModelToML:
     def test_endpoint(
         self,
         request_file: str = "./models/input_example.json",
-        blue_deployment_name: str = None,
+        blue_deployment_name: str | None = None,
         online_endpoint_name: str = "blue",
     ):
         if isinstance(blue_deployment_name, str):
@@ -165,28 +203,28 @@ class UploadModelToML:
 
 
 if __name__ == "__main__":
-    subscription_id = sys.argv[1]
-    resource_group_name = sys.argv[2]
-    workspace_name = sys.argv[3]
-    model_name = sys.argv[4]
-    environment_path = sys.argv[5]
-    input_example = sys.argv[6]
+    subscription_id = os.getenv("SUBSCRIPTION_ID")
+    resource_group = os.getenv("RESOURCE_GROUP")
+    workspace_name = os.getenv("WORKSPACE_NAME")
+    model_path = os.getenv("MODEL_PATH")
+    model_name = os.getenv("MODEL_NAME")
+    environment = os.getenv("ENVIRONMENT")
+    image = os.getenv("IMAGE")
+    instance_type = os.getenv("INSTANCE_TYPE")
+    deployment_name = os.getenv("DEPLOYMENT_NAME")
+    blue_deployment_name = os.getenv("BLUE_DEPLOYMENT_NAME")
+    online_endpoint_name = os.getenv("ONLINE_ENDPOINT_NAME")
+    request_file = os.getenv("REQUEST_FILE")
 
-    # Gets the absolute path of the .pkl model relative to the script
-    model_path = os.path.join(os.path.dirname(__file__), model_name + ".pkl")
-    model_name = model_name.split("/")[-1]
-
-    print("Uploading the model to Azure ML Models...")
-    azureml_controller = UploadModelToML(subscription_id, resource_group_name, workspace_name)
-    azureml_controller.upload_model(model_name=model_name, model_path=model_path)
-
-    print("Creating endpoint for model deployment...")
-    azureml_controller.create_endpoint()
-
-    print("Deploying the model...")
-    azureml_controller.deploy_model(environment_path)
-
-    print("Model deployed successfully")
-
-    print("Testing the model deployment")
-    azureml_controller.test_endpoint(input_example)
+    upload_model = UploadModelToML(subscription_id, resource_group, workspace_name)
+    upload_model.upload_model(model_path, model_name)
+    upload_model.create_endpoint()
+    upload_model.deploy_model(
+        environment=environment,
+        model_name=model_name,
+        image=image,
+        instance_type=instance_type,
+        deployment_name=deployment_name,
+        blue_deployment_name=blue_deployment_name,
+    )
+    upload_model.test_endpoint(request_file=request_file)

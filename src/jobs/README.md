@@ -11,6 +11,30 @@ To run the `pipeline_job.yml` or `experiment_job.yml` in the computer instance y
 az ml job create -f pipeline_job.yml -g <resource_group_name> -w <workspace_name>
 ```
 
+## Register the Required Resource Providers
+In addition to registering `Microsoft.MachineLearningServices`, you may also need to register other relevant resource providers, depending on the specific Azure services you're using in the deployment.
+
+Here are the key resource providers that need to be registered:
+
+- `Microsoft.Cdn` (CDN resource provider)
+- `Microsoft.PolicyInsights` 
+- `Microsoft.MachineLearningServices` (Azure Machine Learning)
+- `Microsoft.Resources` (for managing resource groups)
+- `Microsoft.Compute` (for creating compute resources like Virtual Machines)
+- `Microsoft.Network` (for networking resources like public IPs)
+- `Microsoft.Storage` (for Azure Storage resources, like Blob Storage)
+
+You can register them using the Azure CLI as follows:
+
+```powershell
+az provider register --namespace Microsoft.Cdn
+az provider register --namespace Microsoft.PolicyInsights
+az provider register --namespace Microsoft.MachineLearningServices
+az provider register --namespace Microsoft.Compute
+az provider register --namespace Microsoft.Network
+az provider register --namespace Microsoft.Storage
+```
+
 ## Loading a serialized model in Azure ML Models
 
 This section is a separate process from the ETL, so it has its own `requirements.txt` file since it does not depend on the execution of the previous one. Therefore, if you have a serialized `.pkl` model and you want to deploy it to a workspace in [`Azure Machine Learning`](https://learn.microsoft.com/en-us/azure/machine-learning/concept-workspace?view=azureml-api-2), you must execute the following commands:
