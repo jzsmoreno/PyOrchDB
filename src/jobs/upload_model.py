@@ -120,14 +120,25 @@ class UploadModelToML:
         deployment_name = (
             kwargs["deployment_name"] if "deployment_name" in kwargs else "deployment-environment"
         )
-        if isinstance(environment, str) and custom:
-            if (environment.lower()).startswith("azureml") == -1 and environment.endswith(".yaml"):
+        version = kwargs["version"] if "version" in kwargs else "1"
+        create_environment = (
+            kwargs["create_environment"] if "create_environment" in kwargs else True
+        )
+
+        if isinstance(environment, str) and custom and create_environment:
+            if environment.endswith(".yaml"):
+                print("conda_file: ", environment)
                 environment = Environment(
                     conda_file=environment,
                     image=image,
                     name=deployment_name,
+                    version=version,
+                    description="Custom environment for deployment",
                 )
+                print("Creating a custom environment for deployment.")
                 self.ml_client.environments.create_or_update(environment)
+        else:
+            environment = self.ml_client.environments.get(name=environment, version=version)
 
         # Learn more on https://azure.microsoft.com/en-us/pricing/details/machine-learning/.
         blue_deployment = ManagedOnlineDeployment(

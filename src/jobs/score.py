@@ -14,14 +14,12 @@ def init():
     You can write the logic here to perform init operations like caching the model in memory
     """
     global model
-    global input_schema
     # AZUREML_MODEL_DIR is an environment variable created during deployment.
     # It is the path to the model folder (./azureml-models/$MODEL_NAME/$VERSION)
     # Please provide your model's folder name if there is one
     model_path = os.path.join(os.getenv("AZUREML_MODEL_DIR"), "model_clf")
     # Load the TensorFlow model from the MLflow model path
     model = mlflow.tensorflow.load_model(model_path)
-    input_schema = model.metadata.get_input_schema()
     logging.info("Model loaded successfully.")
 
 
@@ -38,8 +36,7 @@ def run(raw_data):
     if "input_data" not in json_data.keys():
         raise Exception("Request must contain a top level key named 'input_data'")
 
-    serving_input = json.dumps(json_data["input_data"])
-    data = infer_and_parse_json_input(serving_input, input_schema)
+    data = json_data["input_data"]["data"]
     data = np.array(data)  # Ensure the input is in numpy format
 
     # Perform prediction using the loaded TensorFlow model
